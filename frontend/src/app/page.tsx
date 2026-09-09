@@ -3,13 +3,20 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
 
 export default function HomePage() {
   const { isAuthenticated } = useAuth()
+  const { language, setLanguage } = useLanguage()
   const router = useRouter()
+
+  const languages = [
+    { value: 'en', label: 'English' },
+    { value: 'zh', label: '中文' },
+  ]
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -21,7 +28,7 @@ export default function HomePage() {
     return null
   }
 
-  const features = [
+  const features = language === 'zh' ? [
     {
       title: '先读懂知识 再生成课件',
       subtitle: 'SMART PARSING',
@@ -64,6 +71,49 @@ export default function HomePage() {
         '把复杂的概念和步骤变成动态可视化过程，学生不再对着文字发呆，一步步看就能懂',
       iconSrc: '/icons/6.jpg'
     }
+  ] : [
+    {
+      title: 'Smart Concept Parsing',
+      subtitle: 'SMART PARSING',
+      description:
+        'Understand knowledge relationships and key concepts first before generating courseware—just like lesson preparation.',
+      iconSrc: '/icons/1.jpg'
+    },
+    {
+      title: 'Step-by-Step Generation',
+      subtitle: 'STEP-BY-STEP GENERATION',
+      description:
+        'Structure first, content second, interactions third—building modularly for consistent, high-quality outcomes.',
+      iconSrc: '/icons/2.jpg'
+    },
+    {
+      title: 'Incremental Editing',
+      subtitle: 'INCREMENTAL EDITING',
+      description:
+        'No need to regenerate whole documents. Adjust and modify specific elements effortlessly.',
+      iconSrc: '/icons/3.jpg'
+    },
+    {
+      title: 'Generative UI',
+      subtitle: 'GENERATIVE UI',
+      description:
+        'AI transforms concepts into clickable, interactive learning interfaces where students learn by doing.',
+      iconSrc: '/icons/4.jpg'
+    },
+    {
+      title: 'Teach-Learn-Practice Loop',
+      subtitle: 'TEACH-LEARN-PRACTICE LOOP',
+      description:
+        'A unified platform for teaching, learning, practice, and assessment in an integrated pedagogical loop.',
+      iconSrc: '/icons/5.jpg'
+    },
+    {
+      title: 'Dynamic Visualization',
+      subtitle: 'DYNAMIC VISUALIZATION',
+      description:
+        'Turn abstract concepts and multi-step processes into intuitive, step-by-step visual experiences.',
+      iconSrc: '/icons/6.jpg'
+    }
   ]
 
   return (
@@ -102,11 +152,28 @@ export default function HomePage() {
                 <span>Where knowledge grows, interfaces bloom. Where interaction flows, thinking deepens.</span>
               </div>
             </div>
-            <Link href="/register">
-              <button className="rounded-2xl bg-white px-6 py-3 text-sm font-medium text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
-                Sign Up
-              </button>
-            </Link>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1 rounded-full bg-white/60 backdrop-blur-sm p-1">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.value}
+                    onClick={() => setLanguage(lang.value as 'zh' | 'en')}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      language === lang.value
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:bg-white/50'
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+              <Link href="/register">
+                <button className="rounded-2xl bg-white px-5 py-2.5 text-sm font-medium text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md">
+                  {language === 'zh' ? '注册' : 'Sign Up'}
+                </button>
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -116,21 +183,21 @@ export default function HomePage() {
             <h1 className="text-[4.35rem] font-semibold leading-[1.02] tracking-[0.015em] text-slate-900 [text-shadow:0_1px_0_rgba(255,255,255,0.55),0_14px_26px_rgba(41,60,110,0.18)] md:text-[5.4rem]">
               MAIC-UI
             </h1>
-            <h2 className="mt-5 whitespace-nowrap text-[1.95rem] font-semibold leading-[1.12] tracking-[0.01em] text-slate-900 [text-shadow:0_1px_0_rgba(255,255,255,0.45),0_10px_20px_rgba(52,74,128,0.14)] md:text-[2.35rem]">
-              全学段AI交互式教学生成系统
+            <h2 className="mt-5 text-[1.95rem] font-semibold leading-[1.12] tracking-[0.01em] text-slate-900 [text-shadow:0_1px_0_rgba(255,255,255,0.45),0_10px_20px_rgba(52,74,128,0.14)] md:text-[2.35rem]">
+              {language === 'zh' ? '全学段AI交互式教学生成系统' : 'AI-Augmented Interactive Teaching Platform'}
             </h2>
-            <p className="mt-6 max-w-none whitespace-nowrap text-[1.38rem] leading-[1.25] tracking-[0.01em] text-slate-600 md:text-[1.58rem]">
-              让知识生长出界面 让交互渗透进思维
+            <p className="mt-6 max-w-none text-[1.25rem] leading-[1.3] tracking-[0.01em] text-slate-600 md:text-[1.4rem]">
+              {language === 'zh' ? '让知识生长出界面 让交互渗透进思维' : 'Where knowledge grows, interfaces bloom. Where interaction flows, thinking deepens.'}
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link href="/register">
-                <Button className="rounded-2xl bg-gradient-to-r from-[#3267f2] to-[#2a59de] px-10 py-4 text-lg text-white shadow-[0_10px_24px_rgba(50,103,242,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:from-[#3b6ff5] hover:to-[#315fe3] hover:shadow-[0_14px_28px_rgba(50,103,242,0.34)]">
-                  开始体验
+                <Button className="rounded-2xl bg-gradient-to-r from-[#3267f2] to-[#2a59de] px-8 py-3.5 text-lg text-white shadow-[0_10px_24px_rgba(50,103,242,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:from-[#3b6ff5] hover:to-[#315fe3] hover:shadow-[0_14px_28px_rgba(50,103,242,0.34)]">
+                  {language === 'zh' ? '开始体验' : 'Get Started'}
                 </Button>
               </Link>
               <Link href="/login">
-                <Button variant="outline" className="rounded-2xl border-slate-200 bg-white/78 px-10 py-4 text-lg text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
-                  登录
+                <Button variant="outline" className="rounded-2xl border-slate-200 bg-white/78 px-8 py-3.5 text-lg text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
+                  {language === 'zh' ? '登录' : 'Sign In'}
                 </Button>
               </Link>
             </div>

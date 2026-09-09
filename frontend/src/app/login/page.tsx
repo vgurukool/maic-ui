@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
 const loginSchema = z.object({
-  email: z.string().email('请输入有效邮箱地址'),
-  password: z.string().min(1, '请输入密码')
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Please enter password')
 })
 
 type LoginFormData = z.infer<typeof loginSchema>

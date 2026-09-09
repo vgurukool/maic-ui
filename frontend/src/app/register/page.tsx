@@ -13,23 +13,23 @@ import { Button } from '@/components/ui/Button'
 
 const registerSchema = z
   .object({
-    email: z.string().email('请输入有效邮箱地址'),
+    email: z.string().email('Please enter a valid email address'),
     username: z
       .string()
-      .min(3, '用户名至少需要 3 个字符')
-      .max(20, '用户名不能超过 20 个字符')
-      .regex(/^[a-zA-Z0-9_-]+$/, '用户名只允许字母、数字、连字符和下划线'),
+      .min(3, 'Username must be at least 3 characters')
+      .max(20, 'Username cannot exceed 20 characters')
+      .regex(/^[a-zA-Z0-9_-]+$/, 'Username only allows letters, numbers, hyphens, and underscores'),
     password: z
       .string()
-      .min(8, '密码至少需要 8 个字符')
-      .regex(/[A-Za-z]/, '密码至少包含一个字母')
-      .regex(/\d/, '密码至少包含一个数字'),
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Za-z]/, 'Password must contain at least one letter')
+      .regex(/\d/, 'Password must contain at least one number'),
     confirmPassword: z.string(),
     fullName: z.string().optional(),
     gradeLevel: z.number().int().min(0).max(12).optional()
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的密码不一致',
+    message: 'Passwords do not match',
     path: ['confirmPassword']
   })
 
