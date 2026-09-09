@@ -86,6 +86,12 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({})
   const [showResults, setShowResults] = useState<Record<string, boolean>>({})
   const [hoveredKnowledgeIndex, setHoveredKnowledgeIndex] = useState<number | null>(null)
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false)
+
+  const languages: { value: Language; label: string }[] = [
+    { value: 'zh', label: '中文' },
+    { value: 'en', label: 'English' },
+  ]
 
   const websiteIframeRef = useRef<HTMLIFrameElement | null>(null)
   const currentWebsiteVersionIdRef = useRef<number | null>(null)
@@ -147,7 +153,7 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
         versionNumber: version.version_number,
         name: version.title,
         modifiedDate: version.created_at || new Date().toISOString(),
-        modificationPrompt: version.user_prompt || t('public_doc.no_modification'),
+        modificationPrompt: version.user_prompt || t('version.no_prompt'),
         html: '',
         isCurrent: Number(version.is_current) === 1,
         isRoot: Boolean(version.is_root)
@@ -239,7 +245,7 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
       const response = await fetch(`${API_BASE_URL}/pdf/documents/${version.documentId}`, {
         headers: getAuthHeaders()
       })
-      if (!response.ok) throw new Error('获取版本内容失败')
+      if (!response.ok) throw new Error(t('public_doc.fetch_version_failed'))
       const data = await response.json()
 
       setCustomWebsiteHtml(data.website || '')
@@ -408,10 +414,44 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
       <div className="overflow-hidden rounded-none border-0 bg-white/30 shadow-none backdrop-blur-sm">
         <div className="grid min-h-screen grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="border-b border-slate-200/70 bg-white/78 p-5 backdrop-blur-sm xl:border-b-0 xl:border-r">
-            <div className="mb-5 flex items-center px-2 py-2">
-              <img src="/images/图标.jpg" alt="MAIC-UI Logo" className="mr-3 h-8 w-8 rounded-md object-cover" />
-              <div className="text-[1.65rem] font-semibold tracking-tight text-slate-900">
-                {t('dashboard.title')}<span className="ml-1 text-[1.05rem]">{t('dashboard.studio')}</span>
+            <div className="mb-5 flex items-center justify-between px-2 py-2">
+              <div className="flex items-center">
+                <img src="/images/图标.jpg" alt="MAIC-UI Logo" className="mr-3 h-8 w-8 rounded-md object-cover" />
+                <div className="text-[1.65rem] font-semibold tracking-tight text-slate-900">
+                  {t('dashboard.title')}<span className="ml-1 text-[1.05rem]">{t('dashboard.studio')}</span>
+                </div>
+              </div>
+
+              {/* Language Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                  className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white/90 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white"
+                >
+                  <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                  <span>{language === 'zh' ? '中文' : 'English'}</span>
+                  <svg className={`h-4 w-4 transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isLanguageDropdownOpen && (
+                  <div className="absolute right-0 z-50 mt-2 w-32 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-lg">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.value}
+                        onClick={() => {
+                          setLanguage(lang.value)
+                          setIsLanguageDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${language === lang.value ? 'bg-violet-50 font-medium text-violet-700' : 'text-slate-700'}`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -419,10 +459,10 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
               <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_12px_30px_rgba(40,50,90,0.08)]">
                 <h2 className="text-[1.75rem] font-bold text-slate-900">{t('public_doc.course_info')}</h2>
                 <div className="mt-4 space-y-2 text-[1.15rem] leading-relaxed text-slate-800">
-                  <p>{t('public_doc.subject')}：{document.subject || document.concept_data?.subject || t('public_doc.not_specified')}</p>
-                  <p>{t('public_doc.grade')}：{document.grade_level ? `${document.grade_level}${t('public_doc.grade_suffix')}` : t('public_doc.not_specified')}</p>
-                  <p>{t('public_doc.knowledge_point')}：{conceptName}</p>
-                  <p>{t('public_doc.pages')}：{document.page_count}</p>
+                  <p>{t('public_doc.subject')}: {document.subject || document.concept_data?.subject || t('public_doc.not_specified')}</p>
+                  <p>{t('public_doc.grade')}: {document.grade_level ? `${document.grade_level}${t('public_doc.grade_suffix')}` : t('public_doc.not_specified')}</p>
+                  <p>{t('public_doc.knowledge_point')}: {conceptName}</p>
+                  <p>{t('public_doc.pages')}: {document.page_count}</p>
                 </div>
               </div>
 
@@ -458,49 +498,87 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
 
           <main className="bg-gradient-to-b from-white/78 to-white/52 p-5 sm:p-6 lg:p-8">
             <div className="space-y-6 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_14px_40px_rgba(40,50,90,0.08)] sm:p-6">
-              <div className="rounded-2xl border border-green-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
-                <div className="mb-5 flex flex-col items-center text-center">
-                  <h1 className="text-[2.5rem] font-bold leading-tight text-slate-900">{t('public_doc.generated_complete')}</h1>
-                  <p className="mt-2 text-[1.75rem] text-slate-600">{t('public_doc.new_experience')}</p>
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                    <span className="inline-flex w-fit items-center rounded-full bg-green-100 px-4 py-2 text-lg font-semibold text-green-700">
-                      {t('public_doc.ready')}
-                    </span>
-                    {editStatus === 'processing' && (
-                      <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{t('public_doc.edit_processing')}</span>
-                    )}
-                    {editStatus === 'completed' && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{t('public_doc.edit_completed')}</span>
+              {document.status === 'ready' && (
+                <div className="rounded-2xl border border-green-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="mb-5 flex flex-col items-center text-center">
+                    <h1 className="text-[2.5rem] font-bold leading-tight text-slate-900">{t('public_doc.generated_complete')}</h1>
+                    <p className="mt-2 text-[1.75rem] text-slate-600">{t('public_doc.new_experience')}</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <span className="inline-flex w-fit items-center rounded-full bg-green-100 px-4 py-2 text-lg font-semibold text-green-700">
+                        {t('public_doc.ready')}
+                      </span>
+                      {editStatus === 'processing' && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{t('public_doc.edit_processing')}</span>
+                      )}
+                      {editStatus === 'completed' && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{t('public_doc.edit_completed')}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button
+                      onClick={() => {
+                        checkEditStatus()
+                        setShowWebsite(true)
+                      }}
+                      disabled={!(document.website || customWebsiteHtml)}
+                      className="rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-xl font-semibold text-white shadow-[0_12px_28px_rgba(124,77,255,0.35)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('public_doc.start_learning')}
+                    </button>
+                    <button
+                      onClick={handleDownloadHtml}
+                      disabled={!(document.website || customWebsiteHtml)}
+                      className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('public_doc.download_course')}
+                    </button>
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {t('public_doc.download_pdf')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {document.status === 'processing' && (
+                <div className="rounded-2xl border border-blue-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+                    <h1 className="text-[2.2rem] font-bold leading-tight text-slate-900">{t('public_doc.processing_doc')}</h1>
+                    <p className="mt-2 text-lg text-slate-600">{t('public_doc.processing_desc')}</p>
+                  </div>
+                </div>
+              )}
+
+              {document.status === 'error' && (
+                <div className="rounded-2xl border border-red-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <h1 className="text-[2.2rem] font-bold leading-tight text-slate-900">{t('public_doc.process_failed')}</h1>
+                    <p className="mt-2 max-w-2xl rounded-lg bg-red-50 p-4 text-sm font-mono text-red-700 border border-red-200">
+                      {document.error_message || t('public_doc.unknown_error')}
+                    </p>
+                    {document.original_filename && (
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={handleDownloadPdf}
+                          className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-base font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          {t('public_doc.download_pdf')}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="flex flex-wrap justify-center gap-3">
-                  <button
-                    onClick={() => {
-                      checkEditStatus()
-                      setShowWebsite(true)
-                    }}
-                    disabled={!(document.status === 'ready' && (document.website || customWebsiteHtml))}
-                    className="rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-xl font-semibold text-white shadow-[0_12px_28px_rgba(124,77,255,0.35)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t('public_doc.start_learning')}
-                  </button>
-                  <button
-                    onClick={handleDownloadHtml}
-                    disabled={!(document.website || customWebsiteHtml)}
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t('public_doc.download_course')}
-                  </button>
-                  <button
-                    onClick={handleDownloadPdf}
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    {t('public_doc.download_pdf')}
-                  </button>
-                </div>
-              </div>
+              )}
 
               <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
                 <h2 className="mb-4 text-[1.5rem] font-bold text-slate-900">{t('public_doc.version_section')}</h2>
@@ -648,25 +726,6 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
                       )
                     })}
                   </div>
-                </div>
-              )}
-
-              {document.status === 'processing' && (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
-                    <div>
-                      <h3 className="text-xl font-medium text-blue-900">{t('public_doc.processing_doc')}</h3>
-                      <p className="text-blue-700">{t('public_doc.processing_desc')}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {document.status === 'error' && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-                  <h3 className="mb-1 text-xl font-medium text-red-900">{t('public_doc.process_failed')}</h3>
-                  <p className="text-red-700">{document.error_message || t('public_doc.unknown_error')}</p>
                 </div>
               )}
             </div>

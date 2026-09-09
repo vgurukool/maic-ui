@@ -301,6 +301,18 @@ const translations: Record<Language, Record<string, string>> = {
     'public_doc.delete_failed': '删除失败',
     'public_doc.invalid_version_id': '无效的版本ID',
     'public_doc.no_modification': '无修改指令',
+
+    // Version list table
+    'version.title': '版本',
+    'version.date': '修改日期',
+    'version.instruction': '修改指令',
+    'version.action': '操作',
+    'version.current': '当前使用',
+    'version.apply': '应用',
+    'version.delete': '删除',
+    'version.no_prompt': '初始版本',
+    'version.default_label': '可交互文件版本',
+    'version.root_cannot_delete': '初始版本不可删除',
   },
   en: {
     // Dashboard
@@ -589,6 +601,18 @@ const translations: Record<Language, Record<string, string>> = {
     'public_doc.delete_failed': 'Delete failed',
     'public_doc.invalid_version_id': 'Invalid version ID',
     'public_doc.no_modification': 'No modification instruction',
+
+    // Version list table
+    'version.title': 'Version',
+    'version.date': 'Date Modified',
+    'version.instruction': 'Instruction',
+    'version.action': 'Actions',
+    'version.current': 'Current',
+    'version.apply': 'Apply',
+    'version.delete': 'Delete',
+    'version.no_prompt': 'Initial version',
+    'version.default_label': 'Interactive File Versions',
+    'version.root_cannot_delete': 'Initial version cannot be deleted',
   }
 }
 

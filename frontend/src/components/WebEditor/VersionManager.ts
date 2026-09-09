@@ -23,7 +23,7 @@ export class VersionManager {
 				versionNumber: version.version_number,
 				name: version.title,
 				modifiedDate: version.created_at || new Date().toISOString(),
-				modificationPrompt: version.user_prompt || '无修改指令',
+				modificationPrompt: version.user_prompt || 'Initial version',
 				html: '',
 				isCurrent: Number(version.is_current) === 1
 			}))
@@ -52,12 +52,12 @@ export class VersionManager {
 		makeCurrent = false,
 		versionNumber?: number
 	): DocumentVersion {
-		const versionName = versionType === 'before' ? '修改前' : '修改后'
+		const versionName = versionType === 'before' ? 'Before modification' : 'After modification'
 		const newVersion: DocumentVersion = {
 			id: `version_${Date.now()}_${this.documentId}`,
 			documentId: this.documentId,
 			versionNumber,
-			name: `${versionName} - ${new Date().toLocaleString('zh-CN')}`,
+			name: `${versionName} - ${new Date().toLocaleString('en-US')}`,
 			modifiedDate: new Date().toISOString(),
 			modificationPrompt,
 			html,

@@ -102,7 +102,7 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
 
     try {
       const response = await fetch(`${API_BASE_URL}/pdf/public/documents/${versionId}`)
-      if (!response.ok) throw new Error('获取当前版本内容失败')
+      if (!response.ok) throw new Error(t('public_doc.fetch_version_failed'))
       const data = await response.json()
       setCustomWebsiteHtml(data.website || '')
       currentWebsiteVersionIdRef.current = versionId
@@ -114,7 +114,7 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
   const fetchVersions = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/web/public/documents/${documentId}/versions`)
-      if (!response.ok) throw new Error(`获取版本失败: ${response.status}`)
+      if (!response.ok) throw new Error(`${t('public_doc.fetch_version_failed')}: ${response.status}`)
 
       const result = await response.json()
       const backendVersions = (result.versions || []).map((version: {
@@ -131,7 +131,7 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
         versionNumber: version.version_number,
         name: version.title,
         modifiedDate: version.created_at || new Date().toISOString(),
-        modificationPrompt: version.user_prompt || '无修改指令',
+        modificationPrompt: version.user_prompt || t('version.no_prompt'),
         html: '',
         isCurrent: Number(version.is_current) === 1,
         isRoot: Boolean(version.is_root)
@@ -151,15 +151,15 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
       const response = await fetch(`${API_BASE_URL}/pdf/public/documents/${documentId}`)
 
       if (!response.ok) {
-        if (response.status === 404) throw new Error('未找到公开文档')
-        throw new Error(`获取文档失败: ${response.status}`)
+        if (response.status === 404) throw new Error(t('public_doc.not_found'))
+        throw new Error(`${t('public_doc.error')}: ${response.status}`)
       }
 
       const data: DocumentData = await response.json()
       setDocument(data)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取文档失败')
+      setError(err instanceof Error ? err.message : t('public_doc.error'))
     } finally {
       setLoading(false)
     }
@@ -214,7 +214,7 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
   const handleApplyVersion = async (version: DocumentVersion) => {
     try {
       const response = await fetch(`${API_BASE_URL}/pdf/public/documents/${version.documentId}`)
-      if (!response.ok) throw new Error('获取版本内容失败')
+      if (!response.ok) throw new Error(t('public_doc.fetch_version_failed'))
       const data = await response.json()
 
       setCustomWebsiteHtml(data.website || '')
@@ -226,8 +226,8 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
         { method: 'POST' }
       )
       if (!setCurrentResponse.ok) {
-        const errorData = await setCurrentResponse.json().catch(() => ({ detail: '设置当前版本失败' }))
-        throw new Error(errorData.detail || '设置当前版本失败')
+        const errorData = await setCurrentResponse.json().catch(() => ({ detail: t('public_doc.set_current_failed') }))
+        throw new Error(errorData.detail || t('public_doc.set_current_failed'))
       }
 
       await fetchVersions()
@@ -239,11 +239,11 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
   const handleDeleteVersion = async (version: DocumentVersion) => {
     try {
       const versionId = Number(version.documentId)
-      if (Number.isNaN(versionId)) throw new Error('无效的版本ID')
+      if (Number.isNaN(versionId)) throw new Error(t('public_doc.invalid_version_id'))
       const response = await fetch(`${API_BASE_URL}/web/public/documents/${documentId}/versions/${versionId}`, {
         method: 'DELETE'
       })
-      if (!response.ok) throw new Error('删除失败')
+      if (!response.ok) throw new Error(t('public_doc.delete_failed'))
       await fetchVersions()
     } catch (err) {
       console.error('Failed to delete version:', err)
@@ -253,7 +253,7 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
   const handleDownloadPdf = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/pdf/public/documents/${documentId}/download`)
-      if (!response.ok) throw new Error('下载失败')
+      if (!response.ok) throw new Error(t('public_doc.download_failed'))
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -265,14 +265,14 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
       window.URL.revokeObjectURL(url)
       window.document.body.removeChild(a)
     } catch {
-      alert('下载失败，请稍后重试')
+      alert(t('public_doc.download_failed'))
     }
   }
 
   const handleDownloadHtml = () => {
     const htmlToDownload = customWebsiteHtml || document?.website
     if (!htmlToDownload) {
-      alert('该文档没有可下载的网页文件')
+      alert(t('public_doc.no_html'))
       return
     }
 
@@ -316,9 +316,9 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
     return (
       document?.concept_data?.concept_name ||
       (Array.isArray(document?.analysis?.key_concepts) && document?.analysis?.key_concepts?.[0]) ||
-      '未指定'
+      t('public_doc.not_specified')
     )
-  }, [document])
+  }, [document, t])
 
   const learningObjectives = useMemo(() => {
     return Array.isArray(document?.analysis?.learning_objectives) ? document.analysis.learning_objectives : []
@@ -365,14 +365,14 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
           onClick={() => setShowWebsite(false)}
           className="fixed left-5 top-5 z-20 rounded-lg border border-slate-300 bg-white/95 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white"
         >
-          返回结果页
+          {t('public_doc.return_results')}
         </button>
         <iframe
           ref={websiteIframeRef}
           srcDoc={htmlToShow}
           className="h-screen w-full border-0"
           sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-          title="交互式学习网站"
+          title={t('public_doc.interactive_site')}
         />
       </div>
     )
@@ -463,49 +463,87 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
 
           <main className="bg-gradient-to-b from-white/78 to-white/52 p-5 sm:p-6 lg:p-8">
             <div className="space-y-6 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_14px_40px_rgba(40,50,90,0.08)] sm:p-6">
-              <div className="rounded-2xl border border-green-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
-                <div className="mb-5 flex flex-col items-center text-center">
-                  <h1 className="text-[2.5rem] font-bold leading-tight text-slate-900">{t('public_doc.generated_complete')}</h1>
-                  <p className="mt-2 text-[1.75rem] text-slate-600">{t('public_doc.new_experience')}</p>
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                    <span className="inline-flex w-fit items-center rounded-full bg-green-100 px-4 py-2 text-lg font-semibold text-green-700">
-                      {t('public_doc.ready')}
-                    </span>
-                    {editStatus === 'processing' && (
-                      <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{t('public_doc.edit_processing')}</span>
-                    )}
-                    {editStatus === 'completed' && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{t('public_doc.edit_completed')}</span>
+              {document.status === 'ready' && (
+                <div className="rounded-2xl border border-green-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="mb-5 flex flex-col items-center text-center">
+                    <h1 className="text-[2.5rem] font-bold leading-tight text-slate-900">{t('public_doc.generated_complete')}</h1>
+                    <p className="mt-2 text-[1.75rem] text-slate-600">{t('public_doc.new_experience')}</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <span className="inline-flex w-fit items-center rounded-full bg-green-100 px-4 py-2 text-lg font-semibold text-green-700">
+                        {t('public_doc.ready')}
+                      </span>
+                      {editStatus === 'processing' && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{t('public_doc.edit_processing')}</span>
+                      )}
+                      {editStatus === 'completed' && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">{t('public_doc.edit_completed')}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button
+                      onClick={() => {
+                        checkEditStatus()
+                        setShowWebsite(true)
+                      }}
+                      disabled={!(document.website || customWebsiteHtml)}
+                      className="rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-xl font-semibold text-white shadow-[0_12px_28px_rgba(124,77,255,0.35)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('public_doc.start_learning')}
+                    </button>
+                    <button
+                      onClick={handleDownloadHtml}
+                      disabled={!(document.website || customWebsiteHtml)}
+                      className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t('public_doc.download_course')}
+                    </button>
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {t('public_doc.download_pdf')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {document.status === 'processing' && (
+                <div className="rounded-2xl border border-blue-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+                    <h1 className="text-[2.2rem] font-bold leading-tight text-slate-900">{t('public_doc.processing_doc')}</h1>
+                    <p className="mt-2 text-lg text-slate-600">{t('public_doc.processing_desc')}</p>
+                  </div>
+                </div>
+              )}
+
+              {document.status === 'error' && (
+                <div className="rounded-2xl border border-red-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <h1 className="text-[2.2rem] font-bold leading-tight text-slate-900">{t('public_doc.process_failed')}</h1>
+                    <p className="mt-2 max-w-2xl rounded-lg bg-red-50 p-4 text-sm font-mono text-red-700 border border-red-200">
+                      {document.error_message || t('public_doc.unknown_error')}
+                    </p>
+                    {document.original_filename && (
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={handleDownloadPdf}
+                          className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-base font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          {t('public_doc.download_pdf')}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="flex flex-wrap justify-center gap-3">
-                  <button
-                    onClick={() => {
-                      checkEditStatus()
-                      setShowWebsite(true)
-                    }}
-                    disabled={!(document.status === 'ready' && (document.website || customWebsiteHtml))}
-                    className="rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-xl font-semibold text-white shadow-[0_12px_28px_rgba(124,77,255,0.35)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t('public_doc.start_learning')}
-                  </button>
-                  <button
-                    onClick={handleDownloadHtml}
-                    disabled={!(document.website || customWebsiteHtml)}
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t('public_doc.download_course')}
-                  </button>
-                  <button
-                    onClick={handleDownloadPdf}
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xl font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    {t('public_doc.download_pdf')}
-                  </button>
-                </div>
-              </div>
+              )}
 
               <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_10px_28px_rgba(40,50,90,0.08)]">
                 <h2 className="mb-4 text-[1.5rem] font-bold text-slate-900">{t('public_doc.version_section')}</h2>
@@ -653,25 +691,6 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
                       )
                     })}
                   </div>
-                </div>
-              )}
-
-              {document.status === 'processing' && (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
-                    <div>
-                      <h3 className="text-xl font-medium text-blue-900">{t('public_doc.processing_doc')}</h3>
-                      <p className="text-blue-700">{t('public_doc.processing_desc')}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {document.status === 'error' && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-                  <h3 className="mb-1 text-xl font-medium text-red-900">{t('public_doc.process_failed')}</h3>
-                  <p className="text-red-700">{document.error_message || t('public_doc.unknown_error')}</p>
                 </div>
               )}
             </div>
