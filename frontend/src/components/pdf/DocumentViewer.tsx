@@ -284,16 +284,20 @@ export function DocumentViewer({ documentId, isPublic = false }: DocumentViewerP
 
   const handleDownloadPdf = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pdf/documents/${documentId}/download`, {
+      let response = await fetch(`${API_BASE_URL}/pdf/documents/${documentId}/download`, {
         headers: getAuthHeaders()
       })
+      if (!response.ok) {
+        response = await fetch(`${API_BASE_URL}/pdf/public/documents/${documentId}/download`)
+      }
       if (!response.ok) throw new Error(t('public_doc.download_failed'))
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = window.document.createElement('a')
       a.href = url
-      a.download = document?.original_filename || 'document.pdf'
+      const safeTitle = (document?.title || 'course').replace(/[^a-zA-Z0-9_-]/g, '_')
+      a.download = document?.original_filename || `${safeTitle}.pdf`
       window.document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)

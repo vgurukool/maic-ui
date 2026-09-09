@@ -259,7 +259,8 @@ export function PublicDocumentViewer({ documentId }: PublicDocumentViewerProps) 
       const url = window.URL.createObjectURL(blob)
       const a = window.document.createElement('a')
       a.href = url
-      a.download = document?.original_filename || 'document.pdf'
+      const safeTitle = (document?.title || 'course').replace(/[^a-zA-Z0-9_-]/g, '_')
+      a.download = document?.original_filename || `${safeTitle}.pdf`
       window.document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
