@@ -70,18 +70,18 @@ class BaseGenerator(ABC):
         """
         prefs = user_preferences.copy()
 
-        # Check if user explicitly selected English
-        user_lang = prefs.get('language', 'zh')
+        # Check user language selection, defaulting to English
+        default_lang = os.getenv('DEFAULT_LANGUAGE', 'en')
+        user_lang = prefs.get('language', default_lang)
 
-        if user_lang == 'en':
-            prefs.setdefault('language', 'en')
-            prefs.setdefault('output_language', 'English')
-            prefs.setdefault('target_language', 'English')
-        else:
-            # Default to Chinese
+        if user_lang in ['zh', 'zh-CN']:
             prefs.setdefault('language', 'zh-CN')
             prefs.setdefault('output_language', '简体中文')
             prefs.setdefault('target_language', 'Chinese')
+        else:
+            prefs.setdefault('language', 'en')
+            prefs.setdefault('output_language', 'English')
+            prefs.setdefault('target_language', 'English')
 
         return prefs
 
@@ -100,7 +100,7 @@ class BaseGenerator(ABC):
             "title": analysis.get("title", "Interactive Learning"),
             "subject": analysis.get("subject_area", "General"),
             "grade_level": user_preferences.get("grade_level", "K-12"),
-            "language": user_preferences.get("output_language", "简体中文"),
+            "language": user_preferences.get("output_language", "English"),
             "difficulty": analysis.get("difficulty_level", "intermediate"),
             "key_concepts": analysis.get("key_concepts", []),
             "learning_objectives": analysis.get("learning_objectives", []),

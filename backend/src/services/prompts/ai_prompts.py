@@ -115,6 +115,7 @@ def english_website_generation_prompt(
         5. Include navigation between pages/sections
         6. Add learning activities and exercises
         7. Make it age-appropriate for grade {grade_level}
+        8. MANDATORY: All user-visible content, page titles, section headers, quiz questions, options, explanations, button labels, and vocabulary definitions MUST be written in English. Do NOT use Chinese.
 
         Structure the response as JSON:
         {{
@@ -213,7 +214,33 @@ def anthropic_knowledge_card_prompt(analysis: Dict) -> str:
         """
 
 
-def anthropic_scientific_prompt(concept_data: Dict) -> str:
+def anthropic_scientific_prompt(concept_data: Dict, language: str = "en") -> str:
+    if language == "en":
+        return f"""
+As an expert in science and education, conduct rigorous scientific modeling for the following learning concept.
+
+Concept Name: {concept_data.get('concept_name', '')}
+Subject: {concept_data.get('subject', '')}
+Concept Overview: {concept_data.get('concept_overview', '')}
+Key Mastery Points: {concept_data.get('mastery_points', '')}
+Design Idea: {concept_data.get('design_idea', '')}
+
+Tasks:
+1. List core formulas, laws, concepts, or logical rules involved in this concept.
+2. Specify physical / logical mechanisms.
+3. List strictly prohibited scientific errors or misconceptions.
+4. **All text, descriptions, and formulas must be in English.**
+
+Please output strictly structured JSON:
+{{
+    "core_formulas": ["Formula 1", "Formula 2"],
+    "mechanism": ["Mechanism 1", "Mechanism 2"],
+    "constraints": ["Constraint 1", "Constraint 2"],
+    "forbidden_errors": ["Error 1", "Error 2"]
+}}
+
+Return ONLY the JSON without any extra explanations.
+"""
     return f"""
 作为科学教育专家，请对以下知识点进行严谨的科学建模。
 
@@ -240,7 +267,30 @@ def anthropic_scientific_prompt(concept_data: Dict) -> str:
 """
 
 
-def anthropic_concept_html_prompt(concept_data: Dict, constraints_summary: str) -> str:
+def anthropic_concept_html_prompt(concept_data: Dict, constraints_summary: str, language: str = "en") -> str:
+    if language == "en":
+        return f"""
+Create a clean, interactive educational learning website focusing on visual interactivity.
+
+【Core Concept】
+{concept_data.get('concept_name', '')} - {concept_data.get('subject', '')}
+
+【Scientific Constraints & Rules】
+{constraints_summary}
+
+【Interactive Component Requirements】
+{concept_data.get('design_idea', '')}
+
+【Page Design & Technical Requirements】
+1. Complete HTML5 document (from <!DOCTYPE html> to </html>) using Tailwind CSS (via CDN: <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> or <script src="https://cdn.tailwindcss.com"></script>) and MathJax for formulas.
+2. Focus on visual and interactive elements with clean, concise text.
+3. JavaScript must strictly follow the scientific rules and mechanism.
+4. Mathematical formulas should use standard LaTeX: inline with \\(formula\\) and block with \\[formula\\] (escape backslashes with double backslashes in JS strings).
+5. **MANDATORY LANGUAGE REQUIREMENT: ALL user-visible content, page title, headings, labels, button texts, interactive option names, formula descriptions, and instructions MUST be in English. Do NOT use any Chinese characters.**
+6. Do NOT wrap output in markdown code blocks like ```html or ```.
+
+Please return ONLY the complete, pure HTML code.
+"""
     return f"""
 创建一个简洁的交互式学习网站，重点突出可视化交互。
 
@@ -267,26 +317,30 @@ def anthropic_concept_html_prompt(concept_data: Dict, constraints_summary: str) 
 """
 
 
-def anthropic_modify_ui_prompt(original_html: str, user_prompt: str, document_context: Dict) -> str:
+def anthropic_modify_ui_prompt(original_html: str, user_prompt: str, document_context: Dict, language: str = "en") -> str:
+    lang_req = "ALL user-visible content, titles, buttons, and explanations MUST be in English. Do not use Chinese characters." if language == "en" else "所有用户可见内容必须使用简体中文。"
     return f"""
-你是一个UI/UX专家。请根据用户的要求修改提供的交互式学习网站HTML代码，同时尽量保留所有教育内容和功能。
+You are a UI/UX expert. Please modify the provided interactive educational website HTML according to the user's requirements, while preserving all educational content and interactivity.
 
-文档信息:
-- 标题: {document_context.get('title', '学习网站')}
-- 学科: {document_context.get('subject', '教育')}
-- 年级: {document_context.get('grade_level', '未指定')}
+Document Information:
+- Title: {document_context.get('title', 'Learning Website')}
+- Subject: {document_context.get('subject', 'Education')}
+- Grade Level: {document_context.get('grade_level', 'Not specified')}
 
-用户的修改要求: {user_prompt}
+User's Modification Request:
+{user_prompt}
 
-原始HTML代码:
+Original HTML Code:
 {original_html[:200000]}
 
-指示:
-1. 分析用户的要求和当前HTML结构
-2. 根据用户的需求相应地修改UI，同时保持响应式设计
-3. 返回修改后的完整HTML
+Instructions:
+1. Analyze the user request and existing HTML structure.
+2. Update the UI accordingly while keeping responsive design and Tailwind CSS styling.
+3. {lang_req}
+4. Return the complete modified HTML from <!DOCTYPE html> to </html>.
+5. Do NOT use markdown code blocks (no ```html).
 
-请直接返回修改后的HTML代码，不要包含其他解释。
+Please return ONLY the modified HTML code with no extra explanation.
 """
 
 
@@ -294,10 +348,37 @@ def anthropic_procedural_html_prompt(
     procedural_concepts: List[Dict],
     grade_level: str,
     interests: List[str],
-    user_instruction: str
+    user_instruction: str,
+    language: str = "en"
 ) -> str:
-    interests_text = ", ".join(interests) if interests else "综合学习"
+    interests_text = ", ".join(interests) if interests else ("General Learning" if language == "en" else "综合学习")
     concepts_text = json.dumps(procedural_concepts, ensure_ascii=False, indent=2)
+    if language == "en":
+        return f"""
+Please create an interactive educational learning website to demonstrate procedural knowledge.
+
+Procedural Concepts:
+{concepts_text}
+
+User Profile:
+- Grade Level: {grade_level}
+- Interests: {interests_text}
+
+User Special Requirements:
+{user_instruction}
+
+Requirements:
+1. Create a complete HTML document from <!DOCTYPE html> to </html>
+2. Use Tailwind CSS (via CDN)
+3. Implement interactive functionality: user input -> processing -> output feedback
+4. Create visual demonstrations for each procedural concept
+5. Include step-by-step guidance and learning hints
+6. Age-appropriate for grade {grade_level} students
+7. **ALL user-visible content, titles, explanations, button labels, and hints MUST be in English. Do NOT use Chinese.**
+8. Do NOT use Markdown code blocks (no ```html).
+
+Please return ONLY the HTML code.
+"""
     return f"""
 请创建一个交互式学习网站来演示程序性知识。
 
@@ -326,10 +407,44 @@ def anthropic_procedural_html_prompt(
 def anthropic_procedural_metadata_prompt(
     procedural_concepts: List[Dict],
     analysis: Dict,
-    grade_level: str
+    grade_level: str,
+    language: str = "en"
 ) -> str:
     concepts_text = json.dumps(procedural_concepts, ensure_ascii=False, indent=2)
     topics = ", ".join(analysis.get('main_topics', []))
+    if language == "en":
+        return f"""
+Please generate metadata and interactive quiz elements for an interactive procedural learning website.
+
+Procedural Concepts:
+{concepts_text}
+
+Content Analysis:
+- Subject: {analysis.get('subject_area', 'General Education')}
+- Topics: {topics}
+
+**ALL metadata titles, learning objectives, and quiz questions/options/explanations MUST be in English.**
+
+Reply strictly in JSON format:
+{{
+    "metadata": {{
+        "title": "Website Title in English",
+        "subject": "Subject",
+        "grade_level": "{grade_level}",
+        "estimated_time_minutes": 30,
+        "learning_objectives": ["Objective 1", "Objective 2"]
+    }},
+    "interactive_elements": [
+        {{
+            "type": "quiz",
+            "question": "Question text in English",
+            "options": ["A", "B", "C", "D"],
+            "correct_answer": 0,
+            "explanation": "Explanation in English"
+        }}
+    ]
+}}
+"""
     return f"""
 请为程序性知识学习网站生成元数据和交互式测验元素。
 

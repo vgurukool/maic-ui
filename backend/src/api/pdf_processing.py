@@ -60,7 +60,7 @@ def get_ai_processor(generation_mode: str = "fast", ai_model: Optional[str] = No
         provider_type = get_provider_for_model(ai_model)
         logger.info(f"Using model {ai_model} with inferred provider: {provider_type}")
     else:
-        provider_type = os.getenv('AI_PROVIDER', 'chinese').lower()
+        provider_type = os.getenv('AI_PROVIDER', 'gemini').lower()
 
     # Set model and API key based on provider type
     if provider_type in ['english', 'gemini', 'openai']:
@@ -334,6 +334,10 @@ async def upload_pdf(
                 user_prefs = json.loads(user_preferences)
             except json.JSONDecodeError:
                 user_prefs = {}
+
+        default_lang = os.getenv('DEFAULT_LANGUAGE', 'en')
+        user_prefs.setdefault('language', default_lang)
+        user_prefs.setdefault('output_language', 'English' if default_lang == 'en' else '简体中文')
 
         # Add grade level from form if provided
         if grade_level:
@@ -1026,7 +1030,8 @@ async def upload_concept(
             "description": description,
             "include_exercises": include_exercises,
             "include_prerequisites": include_prerequisites,
-            "language": language or "zh"  # Use frontend language preference or default to Chinese
+            "language": language or os.getenv('DEFAULT_LANGUAGE', 'en'),
+            "output_language": "English" if (language or os.getenv('DEFAULT_LANGUAGE', 'en')) != "zh" else "Chinese"
         }
 
         # Add AI model - prefer ai_model, fallback to zhipu_text_model for backward compatibility

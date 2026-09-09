@@ -366,6 +366,7 @@ class PPTDemoAnalyzer:
                 # Prepare analysis prompt for this batch
                 grade_level = user_preferences.get('grade_level', 10)
                 subject = user_preferences.get('subject', 'Unknown')
+                language = user_preferences.get('language', os.getenv('DEFAULT_LANGUAGE', 'en'))
 
                 # Determine which prompt to use based on processing mode
                 is_specific_pages_mode = processing_config and processing_config.get("mode") == "specific_pages"
@@ -373,10 +374,10 @@ class PPTDemoAnalyzer:
                 if is_specific_pages_mode:
                     # For specific pages mode, tell AI exactly which slide numbers it's analyzing
                     actual_slide_numbers = [sd["slide_number"] for sd in slide_data]
-                    prompt = self._get_specific_pages_analysis_prompt(grade_level, subject, actual_slide_numbers)
+                    prompt = self._get_specific_pages_analysis_prompt(grade_level, subject, actual_slide_numbers, language=language)
                 else:
                     # For batch mode, use sequential numbering starting from batch_start
-                    prompt = self._get_batch_analysis_prompt(grade_level, subject)
+                    prompt = self._get_batch_analysis_prompt(grade_level, subject, language=language)
 
                 # Build content list for AI
                 content = [{"type": "text", "text": prompt}]
@@ -428,9 +429,10 @@ class PPTDemoAnalyzer:
             # Return fallback analysis
             return self._get_fallback_analysis(len(slide_images))
 
-    def _get_slide_analysis_prompt(self, grade_level: int, subject: str) -> str:
-        """生成幻灯片分析的提示词。"""
-        return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
+    def _get_slide_analysis_prompt(self, grade_level: int, subject: str, language: str = "en") -> str:
+        """Generate prompt for slide analysis."""
+        if language == "zh":
+            return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
 
 上下文：
 - 年级水平: {grade_level}
@@ -470,10 +472,53 @@ class PPTDemoAnalyzer:
     }}
   ]
 }}"""
+        return f"""Please analyze these presentation slides and determine where adding interactive demonstrations will help students understand the content.
 
-    def _get_batch_analysis_prompt(self, grade_level: int, subject: str) -> str:
-        """为批量处理模式生成分析提示词。幻灯片按批次顺序编号。"""
-        return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
+Context:
+- Grade Level: {grade_level}
+- Subject: {subject}
+
+For each slide, determine:
+1. Does this slide introduce complex concepts that need interactive demos?
+2. What type of demo would be most helpful?
+3. Why does this slide need a demo?
+
+Demo types:
+- simulation: interactive simulation or model
+- visualization: data visualization or chart
+- practice: interactive exercise or quiz
+- experiment: virtual experiment or lab
+
+CRITICAL: All text fields in the JSON response MUST be in English.
+
+Please reply in JSON format:
+{{
+  "overall_topic": "Main topic of the presentation",
+  "target_audience": "Target audience description",
+  "key_concepts": ["Concept 1", "Concept 2"],
+  "slides": [
+    {{
+      "slide_number": 1,
+      "title": "Slide Title",
+      "description": "Brief description of slide content",
+      "needs_demo": false,
+      "reason": "Not needed - straightforward content"
+    }},
+    {{
+      "slide_number": 2,
+      "title": "Complex Concept",
+      "description": "Description of complex concept",
+      "needs_demo": true,
+      "reason": "Complex concept requires interactive visualization",
+      "demo_type": "simulation"
+    }}
+  ]
+}}"""
+
+    def _get_batch_analysis_prompt(self, grade_level: int, subject: str, language: str = "en") -> str:
+        """Generate analysis prompt for batch processing mode."""
+        if language == "zh":
+            return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
 
 上下文：
 - 年级水平: {grade_level}
@@ -514,11 +559,55 @@ class PPTDemoAnalyzer:
     }}
   ]
 }}"""
+        return f"""Please analyze these presentation slides and determine where adding interactive demonstrations will help students understand the content.
 
-    def _get_specific_pages_analysis_prompt(self, grade_level: int, subject: str, actual_slide_numbers: List[int]) -> str:
-        """为指定页面模式生成分析提示词。明确告诉AI正在分析哪些幻灯片编号。"""
+Context:
+- Grade Level: {grade_level}
+- Subject: {subject}
+- Processing mode: Batch processing (slides ordered sequentially 1, 2, 3...)
+
+For each slide, determine:
+1. Does this slide introduce complex concepts that need interactive demos?
+2. What type of demo would be most helpful?
+3. Why does this slide need a demo?
+
+Demo types:
+- simulation: interactive simulation or model
+- visualization: data visualization or chart
+- practice: interactive exercise or quiz
+- experiment: virtual experiment or lab
+
+CRITICAL: All text fields in the JSON response MUST be in English.
+
+Please reply in JSON format with slide numbers 1, 2, 3... matching image order:
+{{
+  "overall_topic": "Main topic of the presentation",
+  "target_audience": "Target audience description",
+  "key_concepts": ["Concept 1", "Concept 2"],
+  "slides": [
+    {{
+      "slide_number": 1,
+      "title": "Slide Title",
+      "description": "Brief description of slide content",
+      "needs_demo": false,
+      "reason": "Not needed - straightforward content"
+    }},
+    {{
+      "slide_number": 2,
+      "title": "Complex Concept",
+      "description": "Description of complex concept",
+      "needs_demo": true,
+      "reason": "Complex concept requires interactive visualization",
+      "demo_type": "simulation"
+    }}
+  ]
+}}"""
+
+    def _get_specific_pages_analysis_prompt(self, grade_level: int, subject: str, actual_slide_numbers: List[int], language: str = "en") -> str:
+        """Generate analysis prompt for specific pages mode."""
         slides_text = ", ".join(map(str, actual_slide_numbers))
-        return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
+        if language == "zh":
+            return f"""请分析这些演示文稿幻灯片，并确定在哪里添加交互式演示可以帮助学生理解内容。
 
 上下文：
 - 年级水平: {grade_level}
@@ -561,6 +650,40 @@ class PPTDemoAnalyzer:
       "description": "幻灯片内容的简要描述",
       "needs_demo": false,
       "reason": "不需要 - 内容直观易懂"
+    }}
+  ]
+}}"""
+        return f"""Please analyze these presentation slides and determine where adding interactive demonstrations will help students understand the content.
+
+Context:
+- Grade Level: {grade_level}
+- Subject: {subject}
+- Processing Mode: Specific pages analysis
+
+Important: You are analyzing these specific slide numbers (in image order): {slides_text}
+
+Use these exact slide numbers in the returned JSON, do NOT renumber starting from 1!
+
+CRITICAL: All text fields in the JSON response MUST be in English.
+
+Demo types:
+- simulation: interactive simulation or model
+- visualization: data visualization or chart
+- practice: interactive exercise or quiz
+- experiment: virtual experiment or lab
+
+Please reply in JSON format:
+{{
+  "overall_topic": "Main topic of the presentation",
+  "target_audience": "Target audience description",
+  "key_concepts": ["Concept 1", "Concept 2"],
+  "slides": [
+    {{
+      "slide_number": {actual_slide_numbers[0] if actual_slide_numbers else 1},
+      "title": "Slide Title",
+      "description": "Brief description of slide content",
+      "needs_demo": false,
+      "reason": "Not needed - straightforward content"
     }}
   ]
 }}"""
@@ -873,14 +996,16 @@ class PPTDemoAnalyzer:
             return await self.generate_demo_html("", slide_info, user_preferences)
 
     def _get_demo_generation_prompt(self, slide_info: Dict, user_preferences: Dict) -> str:
-        """为演示HTML生成生成提示词。"""
+        """Generate prompt for demo HTML generation."""
         demo_type = slide_info.get('demo_type', 'visualization')
         reason = slide_info.get('reason', '')
-        title = slide_info.get('title', '未知标题')
+        title = slide_info.get('title', 'Untitled')
         description = slide_info.get('description', '')
         grade_level = user_preferences.get('grade_level', 6)
+        language = user_preferences.get('language', os.getenv('DEFAULT_LANGUAGE', 'en'))
 
-        return f"""请创建一个交互式HTML演示，帮助学生理解这个演示文稿幻灯片的内容。
+        if language == 'zh':
+            return f"""请创建一个交互式HTML演示，帮助学生理解这个演示文稿幻灯片的内容。
 
 幻灯片信息：
 - 标题: {title}
@@ -907,6 +1032,33 @@ class PPTDemoAnalyzer:
 - 在浏览器中独立运行
 
 请只返回完整的HTML代码（不要使用markdown格式）。"""
+
+        return f"""Please create an interactive HTML demonstration to help students understand the content of this presentation slide.
+
+Slide Information:
+- Title: {title}
+- Description: {description}
+- Required Demo Type: {demo_type}
+- Reason: {reason}
+
+Target Grade Level: Grade {grade_level}
+
+Requirements:
+1. Create a standalone HTML page with embedded CSS and JavaScript.
+2. Make it interactive, visually engaging, and intuitive for students.
+3. Include visual elements, animations, or simulations as needed.
+4. Ensure the demonstration directly reinforces the slide's content.
+5. Use clean, modern responsive layout and accessible UI controls (buttons, sliders, inputs).
+6. Provide clear instructional copy and guidance for students.
+7. CRITICAL: All visible text, titles, button labels, descriptions, and instructions MUST be in English. Do NOT use any Chinese characters.
+
+The demo should:
+- Be educational and age-appropriate.
+- Reinforce key concepts from the slide.
+- Allow students to explore and experiment with immediate visual feedback.
+- Run standalone in modern web browsers without external dependencies beyond standard CDNs (e.g. Tailwind, KaTeX if needed).
+
+Return ONLY the complete HTML code (do NOT wrap in markdown codeblocks)."""
 
     async def _call_ai_for_demo_generation(self, prompt: str) -> str:
         """调用AI提供商生成演示HTML。"""

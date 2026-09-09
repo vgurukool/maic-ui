@@ -112,19 +112,35 @@ class FastGenerator(BaseGenerator):
 
         if not procedural_concepts:
             # Fallback: create procedural concepts from key_concepts
-            procedural_concepts = [
-                {
-                    "name": concept,
-                    "description": f"理解并应用{concept}的概念",
-                    "key_steps": [
-                        "步骤1：理解概念",
-                        "步骤2：实践练习",
-                        "步骤3：问题应用"
-                    ],
-                    "complexity": "中等"
-                }
-                for concept in analysis.get('key_concepts', [])[:2]
-            ]
+            is_chinese = analysis.get('language') in ['zh', 'zh-CN']
+            if is_chinese:
+                procedural_concepts = [
+                    {
+                        "name": concept,
+                        "description": f"理解并应用{concept}的概念",
+                        "key_steps": [
+                            "步骤1：理解概念",
+                            "步骤2：实践练习",
+                            "步骤3：问题应用"
+                        ],
+                        "complexity": "中等"
+                    }
+                    for concept in analysis.get('key_concepts', [])[:2]
+                ]
+            else:
+                procedural_concepts = [
+                    {
+                        "name": concept,
+                        "description": f"Understand and apply the concept of {concept}",
+                        "key_steps": [
+                            "Step 1: Understand the core concept",
+                            "Step 2: Interactive practice",
+                            "Step 3: Real-world application"
+                        ],
+                        "complexity": "medium"
+                    }
+                    for concept in analysis.get('key_concepts', [])[:2]
+                ]
 
         # Limit to 2-3 concepts for Fast Mode
         return procedural_concepts[:3]
@@ -146,11 +162,13 @@ class FastGenerator(BaseGenerator):
         grade_level = self._map_grade_level(grade_level_int)
         interests = user_preferences.get('interests', [])
         include_exercises = user_preferences.get('include_exercises', True)
-        user_instruction = user_preferences.get('description', '无')
+        user_instruction = user_preferences.get('description', 'None')
+        language = user_preferences.get('language', 'en')
 
-        logger.info(f"🎨 Generating HTML for {len(procedural_concepts)} concepts, grade {grade_level}")
+        logger.info(f"🎨 Generating HTML for {len(procedural_concepts)} concepts, grade {grade_level}, language {language}")
 
-        prompt = f"""请创建一个交互式学习网站来演示程序性知识，参考以下示例：
+        if language in ['zh', 'zh-CN']:
+            prompt = f"""请创建一个交互式学习网站来演示程序性知识，参考以下示例：
 
         示例网站结构（来自 Compiler Explorer: Lexical Analysis）：
         - 分为左右两栏布局
@@ -181,6 +199,38 @@ class FastGenerator(BaseGenerator):
         8. **禁止使用Markdown代码块，不要输出```html或```**
 
         请只返回纯净的HTML代码，不要包含其他解释。"""
+        else:
+            prompt = f"""Please create an interactive educational learning website to demonstrate procedural knowledge, following this reference structure:
+
+Reference Website Structure:
+- Split into a two-column layout
+- Left column: interactive input area for hands-on practice
+- Right column: real-time output / visualization display
+- Includes clear step-by-step guidance and visual feedback
+
+Now create a similar interactive learning website for the following procedural concepts:
+
+Procedural Concepts:
+{json.dumps(procedural_concepts, ensure_ascii=False, indent=2)}
+
+User Profile:
+- Grade Level: {grade_level}
+- Interests: {', '.join(interests) if interests else 'General Learning'}
+
+User Special Requirements:
+{user_instruction}
+
+Requirements:
+1. Create a complete HTML document from <!DOCTYPE html> to </html>
+2. Use modern CSS styling with Tailwind CSS (via CDN: <script src="https://cdn.tailwindcss.com"></script>)
+3. Implement interactive functionality: user input -> processing -> output feedback
+4. Create visual demonstrations for each procedural concept
+5. Include step-by-step guidance and learning hints
+6. Age-appropriate for grade {grade_level} students
+7. **MANDATORY: ALL user-visible content, titles, headings, explanations, button labels, hints, and quizzes MUST be in English. Do NOT use Chinese characters.**
+8. **DO NOT use Markdown code blocks. Do not output ```html or ```**
+
+Please return ONLY the pure HTML code, with no additional explanations."""
 
         response = await self._call_ai_provider(prompt, thinking_enabled=True)
 
@@ -206,8 +256,11 @@ class FastGenerator(BaseGenerator):
         grade_level_int = user_preferences.get('grade_level', 6)
         grade_level = self._map_grade_level(grade_level_int)
         interests = user_preferences.get('interests', [])
-        if include_exercises:
-            prompt = f"""请为程序性知识学习网站生成元数据和交互式测验元素。
+        language = user_preferences.get('language', 'en')
+
+        if language in ['zh', 'zh-CN']:
+            if include_exercises:
+                prompt = f"""请为程序性知识学习网站生成元数据和交互式测验元素。
 
         程序性概念：
         {json.dumps(procedural_concepts, ensure_ascii=False, indent=2)}
@@ -264,8 +317,8 @@ class FastGenerator(BaseGenerator):
             ]
         }}"""
 
-        else:
-            prompt = f"""请为程序性知识学习网站生成元数据和交互式测验元素。
+            else:
+                prompt = f"""请为程序性知识学习网站生成元数据和交互式测验元素。
 
         程序性概念：
         {json.dumps(procedural_concepts, ensure_ascii=False, indent=2)}
@@ -298,6 +351,101 @@ class FastGenerator(BaseGenerator):
                 "grade_level": "{grade_level}",
                 "estimated_time_minutes": 30,
                 "learning_objectives": ["目标1", "目标2", "目标3"]
+            }},
+            "interactive_elements": []
+        }}"""
+        else:
+            if include_exercises:
+                prompt = f"""Please generate metadata and interactive quiz elements for an interactive procedural knowledge learning website.
+
+        Procedural Concepts:
+        {json.dumps(procedural_concepts, ensure_ascii=False, indent=2)}
+
+        User Profile:
+        - Grade Level: {grade_level}
+        - Interests: {', '.join(interests) if interests else 'General Learning'}
+
+        Content Analysis:
+        - Subject: {analysis.get('subject_area', 'General Education')}
+        - Topics: {', '.join(analysis.get('main_topics', []))}
+        - Key Concepts: {', '.join(analysis.get('key_concepts', []))}
+
+        Please generate the following:
+
+        1. metadata:
+        - title: Engaging learning title suitable for grade {grade_level}
+        - subject: Subject name
+        - grade_level: Grade level
+        - estimated_time_minutes: Estimated learning time (20-40 minutes)
+        - learning_objectives: 2-4 procedural learning objectives
+
+        2. interactive_elements:
+        - Generate 3-5 quiz questions checking student understanding:
+            * quiz: Multiple choice question regarding procedure steps
+            * quiz: Ordering question to identify correct sequence
+            * quiz: Scenario analysis question
+            * vocabulary: Procedural terminology definition
+
+        **MANDATORY: ALL text content, titles, questions, options, and explanations MUST be in English. Do NOT use Chinese.**
+
+        Reply strictly in JSON format:
+        {{
+            "metadata": {{
+                "title": "Website Title in English",
+                "subject": "Subject",
+                "grade_level": "{grade_level}",
+                "estimated_time_minutes": 30,
+                "learning_objectives": ["Objective 1", "Objective 2", "Objective 3"]
+            }},
+            "interactive_elements": [
+                {{
+                    "type": "quiz",
+                    "question": "Question text in English",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
+                    "correct_answer": 0,
+                    "explanation": "Answer explanation in English"
+                }},
+                {{
+                    "type": "vocabulary",
+                    "word": "Terminology",
+                    "definition": "Clear definition in English"
+                }}
+            ]
+        }}"""
+            else:
+                prompt = f"""Please generate metadata and interactive quiz elements for an interactive procedural knowledge learning website.
+
+        Procedural Concepts:
+        {json.dumps(procedural_concepts, ensure_ascii=False, indent=2)}
+
+        User Profile:
+        - Grade Level: {grade_level}
+        - Interests: {', '.join(interests) if interests else 'General Learning'}
+
+        Content Analysis:
+        - Subject: {analysis.get('subject_area', 'General Education')}
+        - Topics: {', '.join(analysis.get('main_topics', []))}
+        - Key Concepts: {', '.join(analysis.get('key_concepts', []))}
+
+        Please generate the following:
+
+        1. metadata:
+        - title: Engaging learning title suitable for grade {grade_level}
+        - subject: Subject name
+        - grade_level: Grade level
+        - estimated_time_minutes: Estimated learning time (20-40 minutes)
+        - learning_objectives: 2-4 procedural learning objectives
+
+        **MANDATORY: ALL text content, titles, and learning objectives MUST be in English. Do NOT use Chinese.**
+
+        Reply strictly in JSON format:
+        {{
+            "metadata": {{
+                "title": "Website Title in English",
+                "subject": "Subject",
+                "grade_level": "{grade_level}",
+                "estimated_time_minutes": 30,
+                "learning_objectives": ["Objective 1", "Objective 2", "Objective 3"]
             }},
             "interactive_elements": []
         }}"""

@@ -50,7 +50,7 @@ LANGUAGE_REQUIREMENTS_EN = """
 - Do NOT output ```html, ``` or any extra explanation text
 """
 
-LANGUAGE_REQUIREMENTS = LANGUAGE_REQUIREMENTS_CN  # Default to Chinese
+LANGUAGE_REQUIREMENTS = LANGUAGE_REQUIREMENTS_EN  # Default to English
 
 # Stage 1: Content-Aligned Interactive Simulations
 STAGE1_ALIGNED_SIMULATION_PROMPT = """
@@ -540,10 +540,10 @@ def get_stage_prompt(stage: int, language: str = 'zh', **kwargs) -> str:
         raise ValueError(f"Invalid stage: {stage}. Must be 1 or 2.")
 
     # Add language requirements based on user preference
-    if language == 'en':
-        kwargs['language_requirements'] = LANGUAGE_REQUIREMENTS_EN
-    else:
+    if language in ['zh', 'zh-CN']:
         kwargs['language_requirements'] = LANGUAGE_REQUIREMENTS_CN
+    else:
+        kwargs['language_requirements'] = LANGUAGE_REQUIREMENTS_EN
 
     return base_prompt.format(**kwargs)
 

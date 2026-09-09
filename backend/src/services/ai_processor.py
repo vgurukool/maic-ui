@@ -282,14 +282,16 @@ class EnglishProvider(AIProvider):
         """Make a text-only API call."""
         return await self._make_api_call([{"type": "text", "text": prompt}], max_tokens=max_tokens)
 
-    async def generate_website_from_concept(self, concept_data: Dict, user_preferences: Dict) -> Dict:
+    async def generate_website_from_concept(self, concept_data: Dict, user_preferences: Optional[Dict] = None) -> Dict:
         """Generate interactive learning website from concept data using Gemini/OpenAI."""
         pipeline_start = time.time()
-        logger.info(f"🎨 Starting concept-based website generation with EnglishProvider ({self.model})")
+        user_preferences = user_preferences or {}
+        language = user_preferences.get('language', 'en')
+        logger.info(f"🎨 Starting concept-based website generation with EnglishProvider ({self.model}) in language={language}")
 
         # Stage 1: Scientific modeling
         logger.info("[1/2] Scientific modeling stage...")
-        scientific_prompt = ai_prompts.anthropic_scientific_prompt(concept_data)
+        scientific_prompt = ai_prompts.anthropic_scientific_prompt(concept_data, language=language)
         sci_text = await self._make_text_call(scientific_prompt)
 
         constraints_summary = ""
@@ -309,7 +311,7 @@ class EnglishProvider(AIProvider):
 
         # Stage 2: Generate interactive website HTML
         logger.info("[2/2] Generating interactive website HTML...")
-        html_prompt = ai_prompts.anthropic_concept_html_prompt(concept_data, constraints_summary)
+        html_prompt = ai_prompts.anthropic_concept_html_prompt(concept_data, constraints_summary, language=language)
         html_text = await self._make_text_call(html_prompt, max_tokens=16384)
 
         html_text = html_text.replace("```html", "").replace("```HTML", "").replace("```", "").strip()
@@ -338,9 +340,10 @@ class EnglishProvider(AIProvider):
     async def modify_website_ui(self, original_html: str, user_prompt: str, document_context: Dict) -> Dict:
         """Modify website UI using Gemini/OpenAI."""
         modification_start = time.time()
-        logger.info(f"🎨 Starting UI modification with EnglishProvider ({self.model})")
+        language = document_context.get('language', 'en')
+        logger.info(f"🎨 Starting UI modification with EnglishProvider ({self.model}) in language={language}")
         try:
-            prompt = ai_prompts.anthropic_modify_ui_prompt(original_html, user_prompt, document_context)
+            prompt = ai_prompts.anthropic_modify_ui_prompt(original_html, user_prompt, document_context, language=language)
             content_text = await self._make_text_call(prompt, max_tokens=16384)
             if content_text:
                 content_text = content_text.replace("```html", "").replace("```HTML", "").replace("```", "").strip()
@@ -1026,8 +1029,9 @@ class ChineseProvider(AIProvider):
         grade_level = self._map_grade_level_to_string(grade_level_int)
 
         # Stage 1: Scientific modeling
-        logger.info("[1/3] Scientific modeling stage...")
-        scientific_prompt = ai_prompts.anthropic_scientific_prompt(concept_data)
+        language = user_preferences.get('language', 'en')
+        logger.info(f"[1/3] Scientific modeling stage in language={language}...")
+        scientific_prompt = ai_prompts.anthropic_scientific_prompt(concept_data, language=language)
 
         sci_response = await self._run_anthropic_call(
             model=self.model,
@@ -1046,19 +1050,20 @@ class ChineseProvider(AIProvider):
             if json_start != -1 and json_end > json_start:
                 sci_data = json.loads(sci_text[json_start:json_end])
                 if sci_data.get('core_formulas'):
-                    constraints_summary += f"核心公式: {', '.join(sci_data['core_formulas'][:3])}\n"
+                    constraints_summary += f"Core Formulas: {', '.join(sci_data['core_formulas'][:3])}\n"
                 if sci_data.get('mechanism'):
-                    constraints_summary += f"工作原理: {'; '.join(sci_data['mechanism'][:3])}\n"
+                    constraints_summary += f"Mechanism: {'; '.join(sci_data['mechanism'][:3])}\n"
                 if sci_data.get('constraints'):
-                    constraints_summary += f"必须遵守: {'; '.join(sci_data['constraints'][:2])}"
+                    constraints_summary += f"Constraints: {'; '.join(sci_data['constraints'][:2])}"
         except:
-            constraints_summary = "科学准确性优先"
+            constraints_summary = "Scientific accuracy first"
 
         # Stage 2: Generate interactive website
-        logger.info("[2/3] Generating interactive website...")
+        logger.info(f"[2/3] Generating interactive website in language={language}...")
         html_prompt = ai_prompts.anthropic_concept_html_prompt(
             concept_data,
-            constraints_summary
+            constraints_summary,
+            language=language
         )
 
         html_response = await self._run_anthropic_call(
@@ -1865,10 +1870,11 @@ class AIProcessor:
         mode = mode or self.generation_mode
         user_preferences = user_preferences or {}
 
-        # Respect user's language preference if provided, otherwise default to Chinese
+        # Respect user's language preference if provided, otherwise default to English
+        default_lang = os.getenv('DEFAULT_LANGUAGE', 'en')
         if 'language' not in user_preferences:
-            user_preferences['language'] = 'zh-CN'
-            user_preferences['output_language'] = '简体中文'
+            user_preferences['language'] = default_lang
+            user_preferences['output_language'] = 'English' if default_lang == 'en' else '简体中文'
 
         # Import generators here to avoid circular imports
         from .html_generation import FastGenerator, HeavyGenerator
@@ -1905,8 +1911,11 @@ class AIProcessor:
         """
         processing_start = time.time()
         user_preferences = user_preferences or {}
+        default_lang = os.getenv('DEFAULT_LANGUAGE', 'en')
+        user_preferences.setdefault('language', default_lang)
+        user_preferences.setdefault('output_language', 'English' if default_lang == 'en' else '简体中文')
         include_exercises = user_preferences.get("include_exercises", True)
-        logger.info(f"🚀 Starting concept processing pipeline with {self.provider.get_provider_name()}")
+        logger.info(f"🚀 Starting concept processing pipeline with {self.provider.get_provider_name()} in language={user_preferences['language']}")
         logger.info(f"📝 Concept: {concept_data.get('subject')} - {concept_data.get('concept_name')}")
 
         try:
