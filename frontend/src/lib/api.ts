@@ -38,9 +38,19 @@ const api = axios.create({
   },
 })
 
+const getCookieOptions = () => ({
+  expires: 7,
+  path: '/',
+  secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
+  sameSite: 'lax' as const,
+})
+
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
-  const token = Cookies.get('access_token')
+  let token = Cookies.get('access_token')
+  if (!token && typeof window !== 'undefined') {
+    token = localStorage.getItem('access_token') || undefined
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -53,11 +63,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid, clear it and redirect to login
-      Cookies.remove('access_token', {
-        secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
-      })
+      Cookies.remove('access_token', { path: '/' })
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
         window.location.href = '/login'
       }
     }
@@ -69,12 +77,11 @@ export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await api.post('/auth/login', credentials)
 
-    // Store token in cookies
-    Cookies.set('access_token', response.data.access_token, {
-      expires: 7, // 7 days
-      secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
-    })
+    // Store token in cookies and localStorage
+    Cookies.set('access_token', response.data.access_token, getCookieOptions())
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', response.data.access_token)
+    }
 
     return response.data
   },
@@ -82,12 +89,11 @@ export const authApi = {
   register: async (userData: RegisterData): Promise<AuthResponse> => {
     const response = await api.post('/auth/register', userData)
 
-    // Store token in cookies
-    Cookies.set('access_token', response.data.access_token, {
-      expires: 7, // 7 days
-      secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
-    })
+    // Store token in cookies and localStorage
+    Cookies.set('access_token', response.data.access_token, getCookieOptions())
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', response.data.access_token)
+    }
 
     return response.data
   },
@@ -97,10 +103,10 @@ export const authApi = {
       await api.post('/auth/logout')
     } finally {
       // Always remove token even if API call fails
-      Cookies.remove('access_token', {
-        secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
-      })
+      Cookies.remove('access_token', { path: '/' })
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
+      }
     }
   },
 
@@ -117,12 +123,11 @@ export const authApi = {
   loginWithKeycloak: async (data: { code?: string; access_token?: string; redirect_uri?: string }): Promise<AuthResponse> => {
     const response = await api.post('/auth/keycloak', data)
 
-    // Store token in cookies
-    Cookies.set('access_token', response.data.access_token, {
-      expires: 7, // 7 days
-      secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
-    })
+    // Store token in cookies and localStorage
+    Cookies.set('access_token', response.data.access_token, getCookieOptions())
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', response.data.access_token)
+    }
 
     return response.data
   },

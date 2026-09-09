@@ -1,51 +1,53 @@
 'use client'
 
-import React, { useEffect, useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/AuthProvider'
 
 function KeycloakCallbackContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { loginWithKeycloak } = useAuth()
   const [error, setError] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(true)
+  const processedRef = useRef(false)
 
   useEffect(() => {
+    if (processedRef.current) {
+      return
+    }
+
+    const code = searchParams.get('code')
+    const errorParam = searchParams.get('error')
+    const errorDesc = searchParams.get('error_description')
+
+    if (errorParam) {
+      setError(errorDesc || errorParam || 'Authentication failed')
+      return
+    }
+
+    if (!code) {
+      setError('Missing authorization code from Keycloak')
+      return
+    }
+
+    processedRef.current = true
+
     const handleCallback = async () => {
-      const code = searchParams.get('code')
-      const errorParam = searchParams.get('error')
-      const errorDesc = searchParams.get('error_description')
-
-      if (errorParam) {
-        setError(errorDesc || errorParam || 'Authentication failed')
-        setIsProcessing(false)
-        return
-      }
-
-      if (!code) {
-        setError('Missing authorization code from Keycloak')
-        setIsProcessing(false)
-        return
-      }
-
       try {
         const redirectUri = window.location.origin + '/auth/callback/keycloak'
         await loginWithKeycloak({
           code,
           redirect_uri: redirectUri,
         })
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       } catch (err: any) {
         console.error('Keycloak login error:', err)
         setError(err.response?.data?.detail || err.message || 'Keycloak authentication failed')
-        setIsProcessing(false)
       }
     }
 
     handleCallback()
-  }, [searchParams, loginWithKeycloak, router])
+  }, [searchParams, loginWithKeycloak])
 
   if (error) {
     return (
