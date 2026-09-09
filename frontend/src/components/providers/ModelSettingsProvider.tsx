@@ -8,11 +8,14 @@ export type ZhipuModel = 'glm-4.7' | 'glm-4.6'
 // Anthropic models
 export type AnthropicModel = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001'
 
+// Gemini models
+export type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.0-flash' | 'gemini-1.5-pro' | 'gemini-1.5-flash'
+
 // All available AI models
-export type AIModel = ZhipuModel | AnthropicModel
+export type AIModel = ZhipuModel | AnthropicModel | GeminiModel
 
 // Model provider type
-export type ModelProvider = 'zhipu' | 'anthropic'
+export type ModelProvider = 'zhipu' | 'anthropic' | 'gemini'
 
 interface ModelSettingsContextType {
   selectedModel: AIModel
@@ -27,13 +30,17 @@ function getProviderFromModel(model: AIModel): ModelProvider {
   if (model.startsWith('glm-')) {
     return 'zhipu'
   }
+  if (model.startsWith('gemini-')) {
+    return 'gemini'
+  }
   return 'anthropic'
 }
 
 // Valid models list
 const VALID_MODELS: AIModel[] = [
   'glm-4.7', 'glm-4.6',
-  'claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'
+  'claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001',
+  'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'
 ]
 
 export function ModelSettingsProvider({ children }: { children: React.ReactNode }) {

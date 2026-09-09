@@ -23,9 +23,22 @@ export interface WebEditorProps {
 
 export type EditStatus = 'idle' | 'processing' | 'completed'
 export type VersionType = 'before' | 'after'
-export type ModelType = 'claude-sonnet-4-6' | 'claude-opus-4-6' | 'claude-haiku-4-5-20251001' | 'glm-4.7' | 'glm-4.6'
+export type ModelType =
+	| 'gemini-2.5-flash'
+	| 'gemini-2.0-flash'
+	| 'gemini-1.5-pro'
+	| 'gemini-1.5-flash'
+	| 'claude-sonnet-4-6'
+	| 'claude-opus-4-6'
+	| 'claude-haiku-4-5-20251001'
+	| 'glm-4.7'
+	| 'glm-4.6'
 
 export const MODEL_OPTIONS: ReadonlyArray<{ label: string; value: ModelType }> = [
+	{ label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
+	{ label: 'Gemini 2.0 Flash', value: 'gemini-2.0-flash' },
+	{ label: 'Gemini 1.5 Pro', value: 'gemini-1.5-pro' },
+	{ label: 'Gemini 1.5 Flash', value: 'gemini-1.5-flash' },
 	{ label: 'Claude Sonnet 4.6', value: 'claude-sonnet-4-6' },
 	{ label: 'Claude Opus 4.6', value: 'claude-opus-4-6' },
 	{ label: 'Claude Haiku 4.5', value: 'claude-haiku-4-5-20251001' },
@@ -34,6 +47,10 @@ export const MODEL_OPTIONS: ReadonlyArray<{ label: string; value: ModelType }> =
 ]
 
 export const MODEL_LABEL_TO_TYPE: Record<string, ModelType> = {
+	'Gemini 2.5 Flash': 'gemini-2.5-flash',
+	'Gemini 2.0 Flash': 'gemini-2.0-flash',
+	'Gemini 1.5 Pro': 'gemini-1.5-pro',
+	'Gemini 1.5 Flash': 'gemini-1.5-flash',
 	'Claude Sonnet 4.6': 'claude-sonnet-4-6',
 	'Claude Opus 4.6': 'claude-opus-4-6',
 	'Claude Haiku 4.5': 'claude-haiku-4-5-20251001',
@@ -42,6 +59,10 @@ export const MODEL_LABEL_TO_TYPE: Record<string, ModelType> = {
 }
 
 export const MODEL_TYPE_TO_LABEL: Record<ModelType, string> = {
+	'gemini-2.5-flash': 'Gemini 2.5 Flash',
+	'gemini-2.0-flash': 'Gemini 2.0 Flash',
+	'gemini-1.5-pro': 'Gemini 1.5 Pro',
+	'gemini-1.5-flash': 'Gemini 1.5 Flash',
 	'claude-sonnet-4-6': 'Claude Sonnet 4.6',
 	'claude-opus-4-6': 'Claude Opus 4.6',
 	'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',

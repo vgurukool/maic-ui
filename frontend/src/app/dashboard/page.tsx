@@ -47,11 +47,15 @@ export default function DashboardPage() {
   const [showAllDocuments, setShowAllDocuments] = useState(false)
 
   const models: { value: AIModel; label: string; description: string }[] = [
-    { value: 'glm-4.7', label: t('model.glm47'), description: t('model.glm47_desc') },
-    { value: 'glm-4.6', label: t('model.glm46'), description: t('model.glm46_desc') },
+    { value: 'gemini-2.5-flash', label: t('model.gemini25_flash'), description: t('model.gemini25_flash_desc') },
+    { value: 'gemini-2.0-flash', label: t('model.gemini20_flash'), description: t('model.gemini20_flash_desc') },
+    { value: 'gemini-1.5-pro', label: t('model.gemini15_pro'), description: t('model.gemini15_pro_desc') },
+    { value: 'gemini-1.5-flash', label: t('model.gemini15_flash'), description: t('model.gemini15_flash_desc') },
     { value: 'claude-opus-4-6', label: t('model.opus46'), description: t('model.opus46_desc') },
     { value: 'claude-sonnet-4-6', label: t('model.sonnet46'), description: t('model.sonnet46_desc') },
-    { value: 'claude-haiku-4-5-20251001', label: t('model.haiku45'), description: t('model.haiku45_desc') }
+    { value: 'claude-haiku-4-5-20251001', label: t('model.haiku45'), description: t('model.haiku45_desc') },
+    { value: 'glm-4.7', label: t('model.glm47'), description: t('model.glm47_desc') },
+    { value: 'glm-4.6', label: t('model.glm46'), description: t('model.glm46_desc') }
   ]
 
   const languages: { value: Language; label: string }[] = [

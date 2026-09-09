@@ -61,17 +61,27 @@ class ChineseEditorProvider:
 
         # Auto-detect API key based on backend
         if not api_key:
-            if self.backend == "anthropic":
+            if self.backend == "gemini":
+                api_key = os.getenv("GEMINI_API_KEY") or os.getenv("ENGLISH_API_KEY")
+            elif self.backend == "anthropic":
                 api_key = os.getenv("ANTHROPIC_API_KEY")
             else:
                 api_key = os.getenv("ZHIPU_API_KEY")
 
         if not api_key:
-            env_var = "ANTHROPIC_API_KEY" if self.backend == "anthropic" else "ZHIPU_API_KEY"
+            env_var = "GEMINI_API_KEY" if self.backend == "gemini" else ("ANTHROPIC_API_KEY" if self.backend == "anthropic" else "ZHIPU_API_KEY")
             raise ValueError(f"API key not provided. Set {env_var} environment variable or pass api_key parameter.")
 
+        self.api_key = api_key
+        self.base_url = base_url
+
         # Initialize appropriate client
-        if self.backend == "anthropic":
+        if self.backend == "gemini":
+            self.base_url = base_url or os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+            self.anthropic_client = None
+            self.zhipu_client = None
+            logger.info(f"🎨 ChineseEditorProvider initialized with Gemini backend, model: {self.model}")
+        elif self.backend == "anthropic":
             if not ANTHROPIC_AVAILABLE:
                 raise ImportError("Anthropic SDK not installed. Install with: pip install anthropic")
 
@@ -94,6 +104,8 @@ class ChineseEditorProvider:
 
     def _detect_backend(self, model: str) -> str:
         """Detect which backend to use based on model name."""
+        if model.startswith("gemini-"):
+            return "gemini"
         if model.startswith("claude-") or model in self.ANTHROPIC_MODELS:
             return "anthropic"
         return "zhipu"  # Default to Zhipu
@@ -314,6 +326,26 @@ class ChineseEditorProvider:
                             content_text += block.text
                 else:
                     content_text = ""
+            elif self.backend == "gemini":
+                import httpx
+                endpoint = f"{self.base_url.rstrip('/')}/chat/completions"
+                payload = {
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7
+                }
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+                async with httpx.AsyncClient(timeout=900.0) as client:
+                    resp = await client.post(endpoint, json=payload, headers=headers)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    content_text = choices[0].get("message", {}).get("content", "") if choices else ""
+                ai_time = time.time() - ai_start
+                logger.info(f"✅ Gemini AI response received in {ai_time:.2f}s")
             else:  # zhipu
                 response = await self._run_zhipu_call(
                     model=self.model,
@@ -532,7 +564,15 @@ def _create_editor_processor(
     final_model = model or os.getenv("EDITOR_MODEL", "glm-4.7")
 
     # Determine API key based on model name (auto-detect backend)
-    if final_model.startswith("claude-") or final_model in ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"]:
+    if final_model.startswith("gemini-"):
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("ENGLISH_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GEMINI_API_KEY environment variable is not configured. "
+                "Please set GEMINI_API_KEY to use Gemini models."
+            )
+        base_url = os.getenv("GEMINI_BASE_URL")
+    elif final_model.startswith("claude-") or final_model in ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"]:
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise ValueError(

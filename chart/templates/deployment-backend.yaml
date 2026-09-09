@@ -27,6 +27,10 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
+          {{- if .Values.backend.envFrom }}
+          envFrom:
+            {{- toYaml .Values.backend.envFrom | nindent 12 }}
+          {{- end }}
           env:
             {{- range $key, $val := .Values.backend.env }}
             - name: {{ $key }}

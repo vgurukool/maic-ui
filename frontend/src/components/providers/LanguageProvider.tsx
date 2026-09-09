@@ -63,6 +63,14 @@ const translations: Record<Language, Record<string, string>> = {
     'model.sonnet46_desc': 'Anthropic均衡模型',
     'model.haiku45': 'Claude Haiku 4.5',
     'model.haiku45_desc': 'Anthropic轻量快速模型',
+    'model.gemini25_flash': 'Gemini 2.5 Flash',
+    'model.gemini25_flash_desc': 'Google 最新多模态模型，极速响应与强推理',
+    'model.gemini20_flash': 'Gemini 2.0 Flash',
+    'model.gemini20_flash_desc': 'Google 旗舰高速多模态模型',
+    'model.gemini15_pro': 'Gemini 1.5 Pro',
+    'model.gemini15_pro_desc': 'Google 深度推理与超长上下文模型',
+    'model.gemini15_flash': 'Gemini 1.5 Flash',
+    'model.gemini15_flash_desc': 'Google 经济快速的多模态模型',
 
     // Upload forms - common
     'upload.select_method': '选择创建方式',
@@ -343,6 +351,14 @@ const translations: Record<Language, Record<string, string>> = {
     'model.sonnet46_desc': 'Anthropic balanced model',
     'model.haiku45': 'Claude Haiku 4.5',
     'model.haiku45_desc': 'Anthropic lightweight fast model',
+    'model.gemini25_flash': 'Gemini 2.5 Flash',
+    'model.gemini25_flash_desc': 'Google latest multimodal model with fast reasoning',
+    'model.gemini20_flash': 'Gemini 2.0 Flash',
+    'model.gemini20_flash_desc': 'Google flagship high-speed multimodal model',
+    'model.gemini15_pro': 'Gemini 1.5 Pro',
+    'model.gemini15_pro_desc': 'Google deep reasoning & long-context model',
+    'model.gemini15_flash': 'Gemini 1.5 Flash',
+    'model.gemini15_flash_desc': 'Google lightweight fast multimodal model',
 
     // Upload forms - common
     'upload.select_method': 'Select Creation Method',

@@ -296,7 +296,7 @@ class TemplateCustomizer:
         # For ZhipuProvider, we can use the existing methods
 
         try:
-            # Check if provider has a method for text-only generation
+            content_text = ""
             if hasattr(self.ai_provider, '_run_zhipu_call'):
                 # ZhipuProvider
                 response = await self.ai_provider._run_zhipu_call(
@@ -305,28 +305,41 @@ class TemplateCustomizer:
                     thinking_params={"type": "enabled"},
                     max_tokens=64000  # Increased for long HTML generation
                 )
-
                 if response and response.choices and response.choices[0].message:
                     content_text = response.choices[0].message.content
+            elif hasattr(self.ai_provider, '_run_anthropic_call'):
+                # Anthropic provider
+                response = await self.ai_provider._run_anthropic_call(
+                    model=self.ai_provider.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=64000
+                )
+                content_text = self.ai_provider._extract_text_from_anthropic_response(response)
+            elif hasattr(self.ai_provider, '_make_text_call'):
+                # English / Gemini provider
+                content_text = await self.ai_provider._make_text_call(prompt, max_tokens=16384)
+            elif hasattr(self.ai_provider, '_make_api_call'):
+                content_text = await self.ai_provider._make_api_call([{"type": "text", "text": prompt}])
 
-                    # Extract HTML from response
-                    html_start = content_text.find('<!DOCTYPE html>')
-                    if html_start == -1:
-                        html_start = content_text.find('<html')
+            if content_text:
+                # Extract HTML from response
+                html_start = content_text.find('<!DOCTYPE html>')
+                if html_start == -1:
+                    html_start = content_text.find('<html')
 
-                    html_end_index = content_text.rfind('</html>')
-                    html_end = html_end_index + len('</html>') if html_end_index != -1 else -1
+                html_end_index = content_text.rfind('</html>')
+                html_end = html_end_index + len('</html>') if html_end_index != -1 else -1
 
-                    if html_start != -1 and html_end > html_start:
-                        return content_text[html_start:html_end]
-                    elif html_start != -1:
-                        # No closing tag found, return from start to end
-                        return content_text[html_start:]
-                    else:
-                        return content_text
+                if html_start != -1 and html_end > html_start:
+                    return content_text[html_start:html_end]
+                elif html_start != -1:
+                    # No closing tag found, return from start to end
+                    return content_text[html_start:]
+                else:
+                    return content_text
 
             # Fallback for other providers
-            logger.warning("LLM provider doesn't support customization, returning prompt as-is")
+            logger.warning("LLM provider returned empty response, returning prompt as-is")
             return prompt
 
         except Exception as e:

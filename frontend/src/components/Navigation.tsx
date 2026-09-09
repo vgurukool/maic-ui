@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useModelSettings, AIModel } from '@/components/providers/ModelSettingsProvider'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
 interface NavigationProps {
   user?: {
@@ -16,13 +17,14 @@ interface NavigationProps {
 export default function Navigation({ user, onLogout }: NavigationProps) {
   const pathname = usePathname()
   const { selectedModel, setSelectedModel } = useModelSettings()
+  const { t } = useLanguage()
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
 
   const navLinks = [
-    { href: '/dashboard', label: '交互资源生成' },
-    { href: '/ppt-upload', label: '上传PPT' },
-    { href: '/templates', label: '模板库' },
-    { href: '/public_documents', label: '查看公开文档' },
+    { href: '/dashboard', label: t('nav.dashboard') },
+    { href: '/ppt-upload', label: t('nav.ppt_upload') },
+    { href: '/templates', label: t('nav.templates') },
+    { href: '/public_documents', label: t('nav.public_docs') },
   ]
 
   const isActive = (href: string) => {
@@ -30,35 +32,62 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
   }
 
   const models: { value: AIModel; label: string; description: string; provider: string }[] = [
+    // Google Gemini Models
     {
-      value: 'glm-4.7',
-      label: 'GLM-4.7',
-      description: '优先使用获得最佳效果',
-      provider: 'Zhipu'
+      value: 'gemini-2.5-flash',
+      label: t('model.gemini25_flash'),
+      description: t('model.gemini25_flash_desc'),
+      provider: 'Google'
     },
     {
-      value: 'glm-4.6',
-      label: 'GLM-4.6',
-      description: '如遇并发限制可切换',
-      provider: 'Zhipu'
+      value: 'gemini-2.0-flash',
+      label: t('model.gemini20_flash'),
+      description: t('model.gemini20_flash_desc'),
+      provider: 'Google'
     },
+    {
+      value: 'gemini-1.5-pro',
+      label: t('model.gemini15_pro'),
+      description: t('model.gemini15_pro_desc'),
+      provider: 'Google'
+    },
+    {
+      value: 'gemini-1.5-flash',
+      label: t('model.gemini15_flash'),
+      description: t('model.gemini15_flash_desc'),
+      provider: 'Google'
+    },
+    // Anthropic Models
     {
       value: 'claude-opus-4-6',
-      label: 'Claude Opus 4.6',
-      description: '最强推理能力，适合复杂任务',
+      label: t('model.opus46'),
+      description: t('model.opus46_desc'),
       provider: 'Anthropic'
     },
     {
       value: 'claude-sonnet-4-6',
-      label: 'Claude Sonnet 4.6',
-      description: '平衡性能与速度',
+      label: t('model.sonnet46'),
+      description: t('model.sonnet46_desc'),
       provider: 'Anthropic'
     },
     {
       value: 'claude-haiku-4-5-20251001',
-      label: 'Claude Haiku 4.5',
-      description: '快速响应，适合简单任务',
+      label: t('model.haiku45'),
+      description: t('model.haiku45_desc'),
       provider: 'Anthropic'
+    },
+    // Zhipu Models
+    {
+      value: 'glm-4.7',
+      label: t('model.glm47'),
+      description: t('model.glm47_desc'),
+      provider: 'Zhipu'
+    },
+    {
+      value: 'glm-4.6',
+      label: t('model.glm46'),
+      description: t('model.glm46_desc'),
+      provider: 'Zhipu'
     },
   ]
 
@@ -93,7 +122,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                 onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
               >
-                <span>AI模型:</span>
+                <span>{t('nav.ai_model')}:</span>
                 <span className="text-blue-600 font-semibold">
                   {models.find(m => m.value === selectedModel)?.label || selectedModel}
                 </span>
@@ -108,13 +137,13 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
               </button>
 
               {isModelDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-50">
+                <div className="absolute right-0 mt-2 w-80 max-h-[80vh] overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg z-50">
                   <div className="py-1">
-                    {/* Zhipu Models */}
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-200">
-                      Zhipu AI (智谱)
+                    {/* Google Gemini Models */}
+                    <div className="px-4 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border-b border-emerald-100">
+                      Google (Gemini)
                     </div>
-                    {models.filter(m => m.provider === 'Zhipu').map((model) => (
+                    {models.filter(m => m.provider === 'Google').map((model) => (
                       <button
                         key={model.value}
                         onClick={() => {
@@ -122,7 +151,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                           setIsModelDropdownOpen(false)
                         }}
                         className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                          selectedModel === model.value ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                          selectedModel === model.value ? 'bg-emerald-50 border-l-4 border-emerald-600' : ''
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -131,15 +160,16 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                             <div className="text-xs text-gray-500 mt-1">{model.description}</div>
                           </div>
                           {selectedModel === model.value && (
-                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
                         </div>
                       </button>
                     ))}
+
                     {/* Anthropic Models */}
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-t border-gray-200">
+                    <div className="px-4 py-2 text-xs font-semibold text-purple-700 bg-purple-50 border-b border-t border-purple-100">
                       Anthropic (Claude)
                     </div>
                     {models.filter(m => m.provider === 'Anthropic').map((model) => (
@@ -159,7 +189,36 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                             <div className="text-xs text-gray-500 mt-1">{model.description}</div>
                           </div>
                           {selectedModel === model.value && (
-                            <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+
+                    {/* Zhipu Models */}
+                    <div className="px-4 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border-b border-t border-blue-100">
+                      Zhipu AI (智谱)
+                    </div>
+                    {models.filter(m => m.provider === 'Zhipu').map((model) => (
+                      <button
+                        key={model.value}
+                        onClick={() => {
+                          setSelectedModel(model.value)
+                          setIsModelDropdownOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                          selectedModel === model.value ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-gray-900">{model.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">{model.description}</div>
+                          </div>
+                          {selectedModel === model.value && (
+                            <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -173,7 +232,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
 
             {user && (
               <span className="text-sm text-gray-600">
-                欢迎，{user.full_name || user.username}！
+                {t('nav.welcome')}{user.full_name || user.username}!
               </span>
             )}
             {onLogout && (
@@ -181,7 +240,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                 onClick={onLogout}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
               >
-                退出登录
+                {t('nav.logout')}
               </button>
             )}
           </div>

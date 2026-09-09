@@ -44,8 +44,10 @@ def get_provider_for_model(model: str) -> str:
         model: Model name
 
     Returns:
-        Provider type: "chinese" or "english"
+        Provider type: "gemini", "chinese", or "english"
     """
+    if model.startswith("gemini-"):
+        return "gemini"
     if model in CHINESE_MODELS:
         return "chinese"
     return "english"
@@ -72,7 +74,7 @@ def get_ai_processor(generation_mode: str = "fast", ai_model: Optional[str] = No
     # Set model and API key based on provider type
     if provider_type in ['english', 'gemini', 'openai']:
         if provider_type == 'gemini':
-            model = ai_model or os.getenv('GEMINI_MODEL', 'gemini-3-pro-image-preview')
+            model = ai_model or os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
             api_key = os.getenv('GEMINI_API_KEY') or os.getenv('ENGLISH_API_KEY') or os.getenv('MIDDLE_TRANSFER_API_KEY')
         elif provider_type == 'openai':
             model = ai_model or os.getenv('OPENAI_MODEL', 'gpt-4.1')

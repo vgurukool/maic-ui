@@ -120,41 +120,60 @@ class AIProvider(ABC):
 
 
 class EnglishProvider(AIProvider):
-    """Unified English AI provider implementation using Chinese middle-transfer API for both Gemini and OpenAI models."""
+    """Unified English / Gemini AI provider implementation supporting Google Gemini and OpenAI models."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash", base_url: Optional[str] = None):
         """
-        Initialize unified English provider.
+        Initialize unified English / Gemini provider.
 
         Args:
-            api_key: API key for the middle-transfer service
-            model: Model to use - supports both gemini-3-pro-image-preview and gpt-4.1
+            api_key: API key for the Gemini or OpenAI service
+            model: Model to use (supports gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-pro, gemini-1.5-flash, gpt-4.1, etc.)
+            base_url: Optional custom base URL
         """
         if not api_key:
             # Try multiple environment variables for flexibility
-            api_key = (os.getenv("ENGLISH_API_KEY") or
-                      os.getenv("MIDDLE_TRANSFER_API_KEY") or
-                      os.getenv("GEMINI_API_KEY") or
-                      os.getenv("OPENAI_API_KEY"))
+            api_key = (os.getenv("GEMINI_API_KEY") or
+                      os.getenv("ENGLISH_API_KEY") or
+                      os.getenv("OPENAI_API_KEY") or
+                      os.getenv("MIDDLE_TRANSFER_API_KEY"))
 
         if not api_key:
-            raise ValueError("API key not provided. Set ENGLISH_API_KEY, MIDDLE_TRANSFER_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY environment variable or pass api_key parameter.")
+            raise ValueError("API key not provided. Set GEMINI_API_KEY, ENGLISH_API_KEY, or OPENAI_API_KEY environment variable or pass api_key parameter.")
 
         self.api_key = api_key
         self.model = model
-        self.base_url = "https://chatapi.onechats.ai/v1beta"
+
+        # Determine base URL
+        if base_url:
+            self.base_url = base_url
+        elif os.getenv("GEMINI_BASE_URL") and "gemini" in self.model.lower():
+            self.base_url = os.getenv("GEMINI_BASE_URL")
+        elif os.getenv("OPENAI_BASE_URL") and not "gemini" in self.model.lower():
+            self.base_url = os.getenv("OPENAI_BASE_URL")
+        elif "gemini" in self.model.lower():
+            self.base_url = os.getenv("ENGLISH_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+        else:
+            self.base_url = os.getenv("ENGLISH_BASE_URL", "https://chatapi.onechats.ai/v1beta")
 
         # Validate model choice
         supported_models = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
             "gemini-3-pro-image-preview",
             "gpt-4.1",
+            "gpt-4o",
+            "gpt-4o-mini",
             "gemini-pro-vision",
             "gpt-4-vision-preview"
         ]
 
         if self.model not in supported_models:
-            print(f"Warning: Model '{self.model}' not in supported list {supported_models}. Using default 'gpt-4.1'")
-            self.model = "gpt-4.1"
+            if not (self.model.startswith("gemini-") or self.model.startswith("gpt-")):
+                print(f"Warning: Model '{self.model}' not in supported list. Using default 'gemini-2.5-flash'")
+                self.model = "gemini-2.5-flash"
 
     async def analyze_content(self, images: List[Dict], user_preferences: Dict) -> Dict:
         """Analyze content using unified English API (supports both Gemini and OpenAI models)."""
@@ -259,17 +278,120 @@ class EnglishProvider(AIProvider):
         else:
             return f"OpenAI ({self.model})"
 
+    async def _make_text_call(self, prompt: str, max_tokens: int = 8192) -> str:
+        """Make a text-only API call."""
+        return await self._make_api_call([{"type": "text", "text": prompt}], max_tokens=max_tokens)
+
     async def generate_website_from_concept(self, concept_data: Dict, user_preferences: Dict) -> Dict:
-        """Generate website from concept - not implemented for English provider."""
-        raise NotImplementedError("generate_website_from_concept is not implemented for English provider. Please use Zhipu provider.")
+        """Generate interactive learning website from concept data using Gemini/OpenAI."""
+        pipeline_start = time.time()
+        logger.info(f"🎨 Starting concept-based website generation with EnglishProvider ({self.model})")
+
+        # Stage 1: Scientific modeling
+        logger.info("[1/2] Scientific modeling stage...")
+        scientific_prompt = ai_prompts.anthropic_scientific_prompt(concept_data)
+        sci_text = await self._make_text_call(scientific_prompt)
+
+        constraints_summary = ""
+        try:
+            json_start = sci_text.find('{')
+            json_end = sci_text.rfind('}') + 1
+            if json_start != -1 and json_end > json_start:
+                sci_data = json.loads(sci_text[json_start:json_end])
+                if sci_data.get('core_formulas'):
+                    constraints_summary += f"Core Formulas: {', '.join(sci_data['core_formulas'][:3])}\n"
+                if sci_data.get('mechanism'):
+                    constraints_summary += f"Mechanism: {'; '.join(sci_data['mechanism'][:3])}\n"
+                if sci_data.get('constraints'):
+                    constraints_summary += f"Constraints: {'; '.join(sci_data['constraints'][:2])}"
+        except Exception:
+            constraints_summary = "Scientific accuracy first"
+
+        # Stage 2: Generate interactive website HTML
+        logger.info("[2/2] Generating interactive website HTML...")
+        html_prompt = ai_prompts.anthropic_concept_html_prompt(concept_data, constraints_summary)
+        html_text = await self._make_text_call(html_prompt, max_tokens=16384)
+
+        html_text = html_text.replace("```html", "").replace("```HTML", "").replace("```", "").strip()
+        html_start = html_text.find('<!DOCTYPE html>')
+        if html_start == -1:
+            html_start = html_text.find('<html')
+        html_end_index = html_text.rfind('</html>')
+        html_end = html_end_index + len('</html>') if html_end_index != -1 else -1
+
+        if html_start != -1 and html_end > html_start:
+            final_html = html_text[html_start:html_end]
+        elif html_start != -1:
+            final_html = html_text[html_start:]
+        else:
+            final_html = html_text
+
+        total_time = time.time() - pipeline_start
+        logger.info(f"✅ Concept-to-website generated in {total_time:.2f}s")
+        return {
+            "concept_name": concept_data.get("concept_name", "Concept"),
+            "html": final_html,
+            "status": "completed",
+            "generation_time": total_time
+        }
 
     async def modify_website_ui(self, original_html: str, user_prompt: str, document_context: Dict) -> Dict:
-        """Modify website UI - not implemented for English provider."""
-        raise NotImplementedError("modify_website_ui is not implemented for English provider. Please use Zhipu provider.")
+        """Modify website UI using Gemini/OpenAI."""
+        modification_start = time.time()
+        logger.info(f"🎨 Starting UI modification with EnglishProvider ({self.model})")
+        try:
+            prompt = ai_prompts.anthropic_modify_ui_prompt(original_html, user_prompt, document_context)
+            content_text = await self._make_text_call(prompt, max_tokens=16384)
+            if content_text:
+                content_text = content_text.replace("```html", "").replace("```HTML", "").replace("```", "").strip()
+                html_start = content_text.find('<!DOCTYPE html>')
+                if html_start == -1:
+                    html_start = content_text.find('<html')
+                html_end_index = content_text.rfind('</html>')
+                html_end = html_end_index + len('</html>') if html_end_index != -1 else -1
+
+                if html_start != -1 and html_end > html_start:
+                    modified_html = content_text[html_start:html_end]
+                elif html_start != -1:
+                    modified_html = content_text[html_start:]
+                else:
+                    modified_html = content_text
+
+                total_time = time.time() - modification_start
+                logger.info(f"✅ UI modification completed in {total_time:.2f}s")
+                return {
+                    "status": "success",
+                    "modified_html": modified_html
+                }
+            return {
+                "status": "success",
+                "modified_html": original_html
+            }
+        except Exception as e:
+            logger.error(f"❌ Error modifying UI: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "modified_html": original_html
+            }
 
     async def generate_knowledge_cards(self, analysis: Dict, user_preferences: Dict) -> Dict:
-        """Generate prerequisite knowledge cards - not implemented for English provider."""
-        raise NotImplementedError("generate_knowledge_cards is not implemented for English provider. Please use Zhipu provider.")
+        """Generate prerequisite knowledge cards using Gemini/OpenAI."""
+        logger.info(f"🖼️ Starting knowledge card generation with EnglishProvider ({self.model})")
+        prompt = self._get_knowledge_card_generation_prompt(analysis, user_preferences)
+        try:
+            content_text = await self._make_text_call(prompt)
+            if content_text:
+                json_start = content_text.find('{')
+                json_end = content_text.rfind('}') + 1
+                if json_start != -1 and json_end > json_start:
+                    result = json.loads(content_text[json_start:json_end])
+                    if isinstance(result, dict) and "cards" in result:
+                        return result
+            return {"cards": []}
+        except Exception as e:
+            logger.error(f"Error generating knowledge cards: {e}")
+            return {"cards": []}
 
     async def customize_template(
         self,
@@ -278,17 +400,25 @@ class EnglishProvider(AIProvider):
         user_preferences: Dict,
         customization_params: Optional[Dict] = None
     ) -> str:
-        """Customize template - not implemented for English provider."""
-        raise NotImplementedError("customize_template is not implemented for English provider. Please use Zhipu provider.")
+        """Customize template using LLM."""
+        from .template_customizer import TemplateCustomizer
+        customizer = TemplateCustomizer(self)
+        return await customizer.customize_template(
+            template=template,
+            content_info=content_info,
+            user_preferences=user_preferences,
+            customization_params=customization_params
+        )
 
-    async def _make_api_call(self, content: List[Dict]) -> str:
-        """Make API call to the middle-transfer service."""
+    async def _make_api_call(self, content: List[Dict], max_tokens: int = 8192) -> str:
+        """Make API call to Gemini (direct or proxy) or OpenAI."""
         import httpx
 
-        # Determine API endpoint based on model
-        if "gemini" in self.model.lower():
-            # Gemini-style endpoint
-            endpoint = f"{self.base_url}/models/{self.model}:streamGenerateContent"
+        is_direct_google = "generativelanguage.googleapis.com" in self.base_url
+        is_middle_transfer = "gemini" in self.model.lower() and not is_direct_google and "onechats" in self.base_url
+
+        if is_middle_transfer:
+            endpoint = f"{self.base_url.rstrip('/')}/models/{self.model}:streamGenerateContent"
             payload = {
                 "contents": [{
                     "role": "user",
@@ -300,17 +430,18 @@ class EnglishProvider(AIProvider):
                 }
             }
         else:
-            # OpenAI-style endpoint (default)
-            endpoint = f"{self.base_url}/chat/completions"
+            # OpenAI-compatible endpoint (used for Google Generative AI and standard OpenAI)
+            endpoint = f"{self.base_url.rstrip('/')}/chat/completions"
             payload = {
                 "model": self.model,
                 "messages": [{
                     "role": "user",
                     "content": content
                 }],
-                "max_tokens": 4000,
                 "temperature": 0.7
             }
+            if not is_direct_google:
+                payload["max_tokens"] = min(max_tokens, 4000)
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -321,20 +452,20 @@ class EnglishProvider(AIProvider):
             response = await client.post(endpoint, json=payload, headers=headers)
             response.raise_for_status()
 
-            if "gemini" in self.model.lower():
-                # Gemini response format
+            if is_middle_transfer:
                 result = response.json()
                 if 'candidates' in result and result['candidates']:
                     return result['candidates'][0]['content']['parts'][0]['text']
                 else:
                     raise ValueError("Invalid Gemini response format")
             else:
-                # OpenAI response format
                 result = response.json()
                 if 'choices' in result and result['choices']:
                     return result['choices'][0]['message']['content']
+                elif 'candidates' in result and result['candidates']:
+                    return result['candidates'][0]['content']['parts'][0]['text']
                 else:
-                    raise ValueError("Invalid OpenAI response format")
+                    raise ValueError(f"Invalid OpenAI response format: {result}")
 
     def _extract_json_from_response(self, response_text: str) -> Dict:
         """Extract JSON from API response text."""
@@ -1565,13 +1696,14 @@ class AIProcessor:
 
             # Default models for different provider types
             if provider_type == 'gemini':
-                model = config.get('model', 'gemini-3-pro-image-preview')
+                model = config.get('model', 'gemini-2.5-flash')
             elif provider_type == 'openai':
                 model = config.get('model', 'gpt-4.1')
 
             return EnglishProvider(
                 api_key=config.get('api_key'),
-                model=model
+                model=model,
+                base_url=config.get('base_url')
             )
         elif provider_type == 'chinese':
             # Unified Chinese provider supports both Anthropic and Zhipu models

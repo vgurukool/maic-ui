@@ -20,6 +20,19 @@ backend:
     SECRET_KEY: "cnoe-vgurukool-maic-jwt-secret-key-2026-prod"
     ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
     ALGORITHM: "HS256"
+    # Model API Keys:
+    # Supply your API key(s) here or via a Kubernetes Secret using envFrom below
+    # GEMINI_API_KEY: ""
+    # OPENAI_API_KEY: ""
+    # ANTHROPIC_API_KEY: ""
+    # ZHIPU_API_KEY: ""
+    # Default model / provider overrides (optional):
+    # GEMINI_MODEL: "gemini-2.5-flash"
+    # GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai"
+  # To load API keys securely from a Kubernetes Secret:
+  # envFrom:
+  #   - secretRef:
+  #       name: maic-api-keys
   persistence:
     enabled: true
     storageClass: "gp3"
