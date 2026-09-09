@@ -1,0 +1,70 @@
+backend:
+  replicaCount: 1
+  image:
+    repository: ayusing/maic-ui-backend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    DATABASE_URL: "sqlite:////app/uploads/learn_your_way.db"
+    ENVIRONMENT: "production"
+    DEBUG: "false"
+    UPLOAD_DIR: "./uploads"
+    PORT: "8000"
+    KEYCLOAK_URL: "https://vgurukool.com/keycloak"
+    KEYCLOAK_INTERNAL_URL: "http://keycloak.keycloak.svc.cluster.local/keycloak"
+    KEYCLOAK_REALM: "cnoe"
+    KEYCLOAK_CLIENT_ID: "vgurukool-apps"
+    SECRET_KEY: "cnoe-vgurukool-maic-jwt-secret-key-2026-prod"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+    ALGORITHM: "HS256"
+  persistence:
+    enabled: true
+    storageClass: "gp3"
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    mountPath: /app/uploads
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ayusing/maic-ui-frontend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 3000
+  env:
+    NODE_ENV: "production"
+    PORT: "3000"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  host: maic.vgurukool.com
+  tls:
+    - secretName: maic-ui-tls
+      hosts:
+        - maic.vgurukool.com

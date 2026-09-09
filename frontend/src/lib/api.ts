@@ -109,6 +109,24 @@ export const authApi = {
     return response.data
   },
 
+  getKeycloakConfig: async (): Promise<{ auth_url: string; client_id: string; realm: string }> => {
+    const response = await api.get('/auth/keycloak/config')
+    return response.data
+  },
+
+  loginWithKeycloak: async (data: { code?: string; access_token?: string; redirect_uri?: string }): Promise<AuthResponse> => {
+    const response = await api.post('/auth/keycloak', data)
+
+    // Store token in cookies
+    Cookies.set('access_token', response.data.access_token, {
+      expires: 7, // 7 days
+      secure: process.env.NODE_ENV === 'production' && (typeof window !== 'undefined' && window.location.protocol === 'https:'),
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none'
+    })
+
+    return response.data
+  },
+
   verifyToken: async (): Promise<{ valid: boolean; payload?: any }> => {
     try {
       const response = await api.post('/auth/verify-token')

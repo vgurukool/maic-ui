@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithKeycloak: (data: { code?: string; access_token?: string; redirect_uri?: string }) => Promise<any>
   register: (userData: any) => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
@@ -21,10 +22,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Skip auth check if on login or register pages
+      // Skip auth check if on login, register, or callback pages
       if (typeof window !== 'undefined') {
         const currentPath = window.location.pathname
-        if (currentPath === '/login' || currentPath === '/register') {
+        if (currentPath === '/login' || currentPath === '/register' || currentPath.startsWith('/auth/callback')) {
           setUser(null)
           setIsLoading(false)
           return
@@ -55,6 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const loginWithKeycloak = async (data: { code?: string; access_token?: string; redirect_uri?: string }) => {
+    try {
+      const response = await authApi.loginWithKeycloak(data)
+      setUser(response.user)
+      return response
+    } catch (error) {
+      throw error
+    }
+  }
+
   const register = async (userData: any) => {
     try {
       const response = await authApi.register(userData)
@@ -79,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isLoading,
     login,
+    loginWithKeycloak,
     register,
     logout,
     isAuthenticated: !!user,

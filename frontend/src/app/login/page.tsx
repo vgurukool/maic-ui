@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useLanguage } from '@/components/providers/LanguageProvider'
+import { authApi } from '@/lib/api'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
@@ -20,6 +21,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [ssoLoading, setSsoLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
   const { login } = useAuth()
@@ -53,6 +55,24 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleKeycloakLogin = async () => {
+    try {
+      setSsoLoading(true)
+      const config = await authApi.getKeycloakConfig()
+      const redirectUri = window.location.origin + '/auth/callback/keycloak'
+      const authUrl = `${config.auth_url}?client_id=${encodeURIComponent(
+        config.client_id
+      )}&response_type=code&scope=openid%20email%20profile&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}`
+      window.location.href = authUrl
+    } catch (err: any) {
+      console.error('Failed to initiate Keycloak login:', err)
+      setError(err.response?.data?.detail || 'Failed to connect to Keycloak SSO')
+      setSsoLoading(false)
     }
   }
 
@@ -139,6 +159,33 @@ export default function LoginPage() {
                 {t('login.submit')}
               </Button>
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-300/60" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="rounded-full bg-white/60 px-3 py-0.5 text-xs font-semibold text-slate-700 backdrop-blur-sm">
+                  {language === 'zh' ? '或使用单点登录' : 'Or continue with'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleKeycloakLogin}
+              disabled={isLoading || ssoLoading}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/70 bg-white/50 px-4 text-base font-semibold text-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.06)] backdrop-blur-sm transition hover:bg-white/80 hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)] disabled:opacity-50"
+            >
+              {ssoLoading ? (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-transparent" />
+              ) : (
+                <svg className="h-5 w-5 text-sky-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                </svg>
+              )}
+              <span>Sign in with Keycloak SSO</span>
+            </button>
           </div>
         </div>
       </div>

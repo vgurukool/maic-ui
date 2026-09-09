@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 import uvicorn
@@ -61,6 +62,10 @@ app.include_router(assessments.router, prefix="/api/assessments", tags=["assessm
 app.include_router(demo_templates.router, prefix="/api/templates", tags=["demo templates"])
 app.include_router(pdf_editing.web_router, prefix="/api/web", tags=["pdf editing"])
 app.include_router(pdf_editing.pdf_router, prefix="/api/pdf", tags=["pdf editing"])
+
+# Mount uploads static files directory
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 async def root():

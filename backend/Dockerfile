@@ -4,34 +4,20 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Use Chinese Debian mirror (Tsinghua) for faster downloads
-RUN set -eux; \
-    if [ -f /etc/apt/sources.list ]; then \
-      sed -i 's|http://deb.debian.org/debian|https://mirrors.tuna.tsinghua.edu.cn/debian|g; s|http://deb.debian.org/debian-security|https://mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list; \
-    fi; \
-    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-      sed -i 's|http://deb.debian.org/debian|https://mirrors.tuna.tsinghua.edu.cn/debian|g; s|http://deb.debian.org/debian-security|https://mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list.d/debian.sources; \
-    fi; \
-    apt-get -o Acquire::Retries=5 update; \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc \
       g++ \
       curl \
       libreoffice-nogui \
       fonts-noto-cjk \
       fonts-wqy-microhei \
-      fonts-wqy-zenhei; \
-    rm -rf /var/lib/apt/lists/*
+      fonts-wqy-zenhei \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and use Chinese mirror
-RUN pip3 install --no-cache-dir --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+# Upgrade pip and install Python dependencies
+RUN pip3 install --no-cache-dir --upgrade pip
 COPY requirements.txt .
-
-# Install Python dependencies with Chinese mirror
-RUN pip3 install --no-cache-dir \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    --retries 3 --timeout 300 \
-    -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -55,5 +41,5 @@ RUN if [ ! -f .env ]; then \
 # Expose port
 EXPOSE 8000
 
-# Command to run the application with multiple workers for better concurrency
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8", "--loop", "uvloop", "--log-level", "info"]
+# Command to run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--log-level", "info"]

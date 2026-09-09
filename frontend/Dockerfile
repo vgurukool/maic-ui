@@ -7,9 +7,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Use Chinese npm mirror (Taobao) for faster downloads
-RUN npm config set registry https://registry.npmmirror.com \
-    && npm ci --prefer-offline
+RUN npm ci --prefer-offline
 
 # Copy source code
 COPY . .
