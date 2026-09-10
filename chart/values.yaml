@@ -22,10 +22,10 @@ backend:
     ALGORITHM: "HS256"
     # Centralized LiteLLM AI Gateway:
     GEMINI_API_KEY: "sk-litellm-vgurukool-master-2026"
-    GEMINI_BASE_URL: "http://litellm.vgurukool.svc.cluster.local:4000/v1"
+    GEMINI_BASE_URL: "http://litellm.litellm.svc.cluster.local:4000/v1"
     GEMINI_MODEL: "gemini-2.5-flash"
     OPENAI_API_KEY: "sk-litellm-vgurukool-master-2026"
-    OPENAI_BASE_URL: "http://litellm.vgurukool.svc.cluster.local:4000/v1"
+    OPENAI_BASE_URL: "http://litellm.litellm.svc.cluster.local:4000/v1"
   # To load API keys securely from a Kubernetes Secret:
   # envFrom:
   #   - secretRef:
