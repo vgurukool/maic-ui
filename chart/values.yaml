@@ -13,7 +13,7 @@ backend:
     DEBUG: "false"
     UPLOAD_DIR: "./uploads"
     PORT: "8000"
-    KEYCLOAK_URL: "https://vgurukool.com/keycloak"
+    KEYCLOAK_URL: "https://platform.vgurukool.com/keycloak"
     KEYCLOAK_INTERNAL_URL: "http://keycloak.keycloak.svc.cluster.local/keycloak"
     KEYCLOAK_REALM: "cnoe"
     KEYCLOAK_CLIENT_ID: "vgurukool-apps"
